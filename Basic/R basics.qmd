@@ -1,0 +1,11 @@
+---
+title: "R basics"
+uthor: "Durjoy Sarker"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+---
+```{r}
+print("hi")
+```
