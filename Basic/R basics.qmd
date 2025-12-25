@@ -7,8 +7,6 @@ format:
     toc-depth: 2
 ---
 
-# Basic
-
 ## Directory 
 ### To know the working directory
 ```{r}
@@ -125,8 +123,44 @@ is.data.frame(met)
 length(met)
 ```
 
+## Read file and Some data exploration
+```{r}
+Family_name <-c("Durjoy", "Swapon", "Lipy")
+Height <- c(155,150,120) #in cm 
+Weight <- c(55,65,45) #in kg
 
+#Making it a data set or data frame
+Family_info <- data.frame(Family_name, Height, Weight)
 
+# dataset view
+Family_info
+print(is.data.frame(Family_info))
+
+#number of row
+print(nrow(Family_info))
+#number of colulmn
+print(ncol(Family_info))
+
+#first six row or just the snipit
+head(Family_info)
+#Last six row
+tail(Family_info)
+
+#summary of the dataset
+summary(Family_info)  
+
+#column name
+names(Family_info)
+
+#showing one column
+Family_info$Family_name
+
+#showing the length of farmer data , how many column are there 
+length(Family_info)
+
+#length of the column
+length(Family_info$Height)
+```
 
 ## Practice 1 - BMI Calculation
 ```{r}
