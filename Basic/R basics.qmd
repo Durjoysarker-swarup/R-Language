@@ -1,11 +1,195 @@
 ---
 title: "R basics"
-uthor: "Durjoy Sarker"
+author: "Durjoy Sarker"
 format:
   pdf:
     toc: true
     toc-depth: 2
 ---
+
+# Basic
+
+## Directory 
+### To know the working directory
 ```{r}
-print("hi")
+getwd()
 ```
+
+### Set the working directory
+```{r}
+#setwd("G\\....\\...\like-this.csv")
+```
+
+### Show the file in the working directory
+```{r}
+list.files()
+```
+
+## Conditional Sentance
+```{R}
+a <- 10
+b <- 12
+if(a>b)
+{print("a is greater than b")} else if(a==b)
+{print("a and b are equal")} else
+{print("b is greater than a")}
+```
+
+
+## Loop
+```{r}
+for(x in 1:10)
+{print(x)}
+```
+
+## Function
+```{r}
+avarage <- function(x,y,z){
+ava=(x+y+z)/2
+print(ava)
+}
+
+avarage(2,3,4)
+```
+
+
+## Data Type
+```{r}
+a <- 10 
+typeof(a) 
+
+b <- "swarup" 
+typeof(b) 
+
+c <- TRUE 
+typeof(c) 
+
+d <- 10L 
+typeof(d) 
+
+e <- 5i 
+typeof(e)
+```
+
+## Sub Setting
+```{r}
+number <- 1:100
+
+odd_number <-  seq(1,99,2)
+from100_1 <-  seq(100,1,-1)
+
+from100_1
+odd_number
+odd_number[10:20]
+odd_number[c(12,32,50,99)]
+odd_number>20
+```
+
+## Variable type change
+```{r}
+double <- 3.1416
+typeof(double)
+
+int <- as.integer(double)
+int
+typeof(int)
+
+srt <- as.character(double)
+srt
+typeof(srt)
+
+logi <- as.logical(double)
+logi
+typeof(logi)
+```
+
+## Creating Dataset in R
+### Simple
+```{r}
+ student_data <- data.frame (name=c("shadhin","joy","durjoy"),roll=c(23,45,32)) 
+```
+
+### Creating with rep function
+hare 'rep' means repeated
+This I will use in the One Way ANOVA
+```{r}
+data_rep <- data.frame(method=rep(c("No 1","No 2","No 3"),each=4), marks=c(1,2,3,4,5,6,7,8,9,1,2,3))
+data_rep
+```
+
+### With metrix
+```{r}
+met <- matrix(c(23,43,24,24,23,34,32,35,32,35,35,35,34,NA,36), nrow=5,ncol=3,byrow=TRUE) 
+met 
+is.data.frame(met)
+length(met)
+```
+
+
+
+
+## Practice 1 - BMI Calculation
+```{r}
+#column info
+Family_name <-c("Durjoy", "Swapon", "Lipy")
+Height <- c(155,150,120) #in cm 
+Weight <- c(55,65,45) #in kg
+
+#Making it a data set or data frame
+Family_info <- data.frame(Family_name, Height, Weight)
+
+#Some visualization 
+plot(Family_info)
+plot(Height~Weight, Family_info)
+
+#data filter***
+Family_info[Family_info$Height==155,]
+
+# Creating a new column of BMI
+Family_info$BMI <-Family_info$Weight/(Family_info$Height*0.01)^2
+Family_info
+
+# Adding a new category***
+Family_info$Health_status <- ifelse(Family_info$BMI<=18.5,"Underweight",ifelse(Family_info$BMI<=24.9,"NORMAL WEIGHT",ifelse(Family_info$BMI<=29.9,"OVERWEIGHT","OBESITY")))
+Family_info
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
