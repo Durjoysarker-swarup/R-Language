@@ -1,0 +1,59 @@
+---
+title: "Vizualization"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+---
+
+## Line graph
+### Basics
+```{r}
+v <- c(13,12,45,34,56,67,89,78,56,78,90) 
+#this is just create point
+plot(v,type = "p")
+
+#this is just create line 
+plot(v,type = "l")
+
+#this is create both line and point
+plot(v,type = "o") 
+```
+
+### With the headline
+```{r}
+days = c(10,20,30,40,50,60,70,80,90) 
+income <- c(1000,3000,4500,6700,7800,8900,9900,11000,12000) 
+plot(days,income,type = "o",main = "Salary",xlab = "days",ylab = "income", col="green") 
+```
+
+### Multiple Graph
+```{r}
+f <- c(3,5,2,7,4,8,9,4) 
+g <- c(4,6,8,6,7,4,7,5) 
+j <- c(3,5,6,5,8,9,5,8) 
+plot(f, type="o",main="multiple graph",xlab="days",ylab="time",col="blue") 
+lines(g, type="o",col="green") 
+lines(j, type="o",col="red")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,5 +1,77 @@
 ---
 title: "Data Exploration"
-format: html
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
 ---
+
+
+## Mean, Median, Mode
+### Mean
+The average of the value.
+```{r}
+#importing dataset
+agri_dataset <- read.csv('G:/Lesson/Done/Research/R Language/R-Language/Basic/agri_dataset.csv')
+
+#calculating mean
+#The result will be NA here. Because it has some missing value.
+mean(agri_dataset$Crop_Yield)
+
+#here na.rm gives the command that calculate the mean without the missing value
+mean(agri_dataset$Crop_Yield, na.rm= TRUE)
+```
+
+### Median
+Median is the middle of the set of numbers
+```{r}
+median(agri_dataset$Crop_Yield, na.rm= TRUE)
+```
+
+### Mode
+Mode is the most frequently occurring value in the numbers
+```{r}
+getmode <- function(v){ 
+return(names(which.max(table(v)))) 
+} 
+mode_of_yield <- getmode(agri_dataset$Crop_Yield) 
+mode_of_yield
+```
+
+
+## Varience and Standard deviation
+### Variance
+```{r}
+var(agri_dataset$Crop_Yield, na.rm= TRUE)
+```
+### Stardard deviation
+```{r}
+sd(agri_dataset$Crop_Yield, na.rm= TRUE)
+```
+
+
+## Quartile
+Provide insights into the distubution of the data
+```{r}
+dataset_q <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15) 
+quantile(dataset_q,probs = c(0.25,0.5,0.75)) 
+
+quantile(agri_dataset$Crop_Yield,probs=c(0.25,0.5,0.75),na.rm=TRUE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
