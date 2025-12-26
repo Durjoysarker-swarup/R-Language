@@ -1,0 +1,60 @@
+---
+title: "Missing value"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+---
+
+## Fill the missing value manually
+```{r}
+#importing the dataset
+library(readr)
+agri_dataset <- read_csv('G:/Lesson/Done/Research/R Language/R-Language/Basic/agri_dataset.csv')
+
+#find missing value
+is.na(agri_dataset$Crop_Yield)
+
+#count the missing value
+sum(is.na(agri_dataset$Crop_Yield))
+
+#omit missing value -> omit all of the missing value and just give the clear dataset
+na.omit(agri_dataset)
+
+#fill the missing value with mean
+mean_of_yield <- mean(agri_dataset$Crop_Yield, na.rm=TRUE)
+agri_dataset[is.na(agri_dataset$Crop_Yield), "Crop_Yield"] <- mean_of_yield
+print(agri_dataset)
+```
+
+
+## Fill the missing value with package
+```{r}
+#Visualizing the missing value
+library(VIM)
+aggr(agri_dataset)
+aggr(agri_dataset$Crop_Yield)
+
+#Fill the missing value
+library(mice)
+imp <- mice(agri_dataset)
+clean_agri_dataset <- complete(imp)
+
+#Visualizing the dataset after filling the missing value
+aggr(agri_dataset)
+aggr(clean_agri_dataset)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
