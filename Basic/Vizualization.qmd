@@ -40,7 +40,28 @@ lines(j, type="o",col="red")
 
 
 
+## Bar Graph
+```{r}
+#Create the matrix of the values
+values <- matrix(c(2, 9, 3, 11, 9, 4, 8, 7, 3, 12, 5, 2, 8, 10, 11),nrow=3, ncol=5, byrow=TRUE)
+#Create the bar chart
+barplot(values, main="Total Revenue", name.arg=months, xlab="Month",ylab="Revenue",  col = colors, beside =TRUE)
+```
 
+## ggplot
+```{r}
+data <- data.frame(
+  x = c(1, 2, 3, 4, 5), 
+  y = c(3, 5, 2, 8, 7) 
+)
+
+library(ggplot2)
+ggplot(data,aes(x,y))+
+  geom_line(color= "blue")+
+  geom_point(size=3)+
+  labs(title="Practice of ggplot", subtitle="add any subtitle hare",caption="add any caption hare", x="x axis", y="y axis")+
+  theme_classic()
+```
 
 
 

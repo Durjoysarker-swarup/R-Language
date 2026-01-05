@@ -1,0 +1,48 @@
+---
+title: "Significance test"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 2 
+---
+
+# ttest
+
+```{r}
+roll <- c(23,45,66,34,54) 
+marks <- c(87,89,80,98,87) 
+student_data <- data.frame(roll,marks) 
+student_data$group <- ifelse(student_data$roll < 50, "Group1", "Group2") 
+table(student_data$group) 
+ttest <- t.test(marks ~ group,data = student_data) 
+ttest  
+```
+
+# One Way ANOVA
+
+```{r}
+Stu_data <- data.frame( 
+Method = rep(c("A", "B", "C"), each = 5), 
+Score = c(85, 90, 88, 87, 84,  # Method A 
+78, 76, 80, 75, 79,  # Method B 
+92, 94, 95, 91, 93)  # Method C 
+) 
+
+anova_result <- aov(Score ~ Method, data = Stu_data) 
+summary(anova_result) 
+```
+
+-   aov: A function in R for conducting ANOVA.
+
+-   Score: The dependent variable or the response variable.
+
+-   Method: The independent variable or the factor whose levels you are
+
+**Look at the p-value in the output:**
+
+1.  If p-value \< 0.05, reject the null hypothesis (there is a significant difference between the groups).
+
+2.  If p-value ≥ 0.05, fail to reject the null hypothesis (there is no significant difference).
+
+*The null hypothesis (H₀) is the default assumption that there is no difference between the groups.*
