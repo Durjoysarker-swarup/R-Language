@@ -1,0 +1,92 @@
+---
+title: "Wrangling with dplyr library "
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 2 
+---
+
+# Data wrangling with dplyr library
+
+## The Wrangling
+*dplur library first work on the first line then to the others line.*
+```{r}
+# First import the dataset
+library(readr)
+fertilizer_yield_data <- read_csv("G:/Lesson/Done/Research/R Language/R-Language/Self-Learning/Data-Wrangling/fertilizer_yield_data.csv")
+
+
+library(dplyr)
+
+overall_mean <- mean(fertilizer_yield_data$yield, na.rm=TRUE)
+
+summary_table <- fertilizer_yield_data %>%
+  filter(yield>2) %>%
+  group_by(fertilizer) %>% #Group the column based on the distinct value
+  summarise(ava_yield = mean(yield, na.rm=TRUE)) %>% #Adding a new column and remove all the prexisting column
+  mutate(yield_lavel = ifelse(ava_yield>overall_mean,"High","Low")) #Add a new column from the datset hare.
+
+#Now see what we did
+print(summary_table)
+
+```
+
+### Power of summarise
+*Summarise function can add multiple condition and it will give the new column every time.*
+```{r}
+New_table <- fertilizer_yield_data %>% 
+  group_by(fertilizer) %>% 
+  summarise( 
+    avg_yield = mean(yield, na.rm=TRUE), 
+    max_yield = max(yield, na.rm = TRUE), 
+    yield_sd = sd(yield, na.rm = TRUE), 
+    unique_yield = n_distinct(yield, na.rm=TRUE) 
+)
+
+print(New_table)
+```
+
+
+
+## Save the file as csv format
+```{r}
+write.csv(summary_table, "Summary table.csv", row.names = FALSE)
+```
+
+## Remove the unwanted column form the dataset
+```{r}
+fertilizer_yield_data %>%
+  select(fertilizer,yield) #Just Show the written column
+```
+
+
+## Rename the datset column
+```{r}
+fertilizer_yield_data %>%
+  rename(fert= fertilizer)
+```
+
+
+## Case_when
+```{r}
+fertilizer_yield_data %>%
+  mutate(yield2=yield*5) %>%
+  mutate(yeild_level=case_when( 
+    yield2 < 10 ~ "Low", 
+    yield2 < 15 ~ "modarate", 
+    yield2 < 7  ~"high", 
+    TRUE ~ "durjoy" 
+    ))
+```
+
+
+
+
+
+
+
+
+
+
+
