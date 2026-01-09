@@ -1,0 +1,115 @@
+---
+title: "Visualization"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 2 
+---
+
+# Barplot
+```{r}
+library(ggplot2)
+data <-  read.csv("G:/Lesson/Done/Research/R Language/R-Language/Self-Learning/ggplot/agriculture_sample_dataset.csv")
+ggplot(data, aes(Fertilizer,Yield,fill=Fertilizer)) +
+  geom_bar(stat = "summary" )+ 
+  facet_wrap(~Region)+ #very very useful function. it separate the plots for each region.
+  theme_minimal()+ 
+  labs(title = "something",x="something 1",y="something 2",caption="something 3") + 
+  scale_fill_brewer(palette = "set7") #professional and readable plots for reports. 
+```
+
+
+# Boxplot
+```{r}
+ggplot(data, aes(Fertilizer,Yield))+ 
+geom_boxplot(fill= "lightgreen") 
+```
+
+
+# Line and Point
+```{r}
+ggplot(data, aes(Month,Yield))+  #for better result the two variable should be numerical 
+  geom_line(col="green")+ 
+  geom_point(col="red") 
+```
+
+# position = "dodge" and the facet_warp difference
+```{r}
+ggplot(data, aes(Fertilizer,Yield,fill= Region)) +
+  geom_bar(stat = "summary",position = "dodge" ) 
+
+ggplot(data, aes(Fertilizer,Yield,fill= Fertilizer)) +
+  geom_bar(stat = "summary")+ 
+  facet_wrap(~Region)
+```
+
+# Time-series visualization
+```{r}
+data1 <- read.csv("G:/Lesson/Done/Research/R Language/R-Language/Self-Learning/ggplot/time_series_agriculture.csv")
+
+data1$Date <- as.Date(data1$Date) #this is so much important it convert the text into date
+ggplot(data1,aes(Date,Temperature), colour=Region)+
+  geom_line() +
+  labs(title= "Daily Temperture Trend by Region", x= "Date", y= "Temparature(°C)")
+```
+
+
+# Grouping and ploting
+## Had to add caption(___)
+```{r}
+#First start grouping the data on based on fertilizer
+library(dplyr)
+
+summary_data <- data %>%
+  group_by(Fertilizer) %>%
+  summarise(
+    mean_yield = mean(Yield, na.rm= TRUE),
+    median_yield = median(Yield, na.rm= TRUE),
+    sd_yield = sd(Yield, na.rm = TRUE)
+    )
+
+#bar plot of mean yield by fertilizer 
+ggplot(summary_data, aes(Fertilizer, mean_yield, fill = Fertilizer))+ 
+  geom_bar(stat="summary")+ 
+  labs(title = "Mean Yield by Fertilizer", x = "Fertilizer", y = "Mean Yield (kg/ha)") + 
+  theme_minimal() 
+
+```
+
+## Grouping based on the multiple column + Visualization 
+```{r}
+
+#Bar Plot of Mean Yield by Fertilizer and Region 
+sad_multi <- data %>% 
+  group_by(Fertilizer,Region) %>% 
+  summarise( 
+    yield_mean = mean(Yield, na.rm=TRUE) 
+    ) 
+
+
+ggplot(sad_multi,aes(Fertilizer,yield_mean,fill=Region))+ 
+  geom_bar(stat="summary", position = "dodge") + 
+  labs(title = "Mean Yield by Fertilizer and Region", x = "Fertilizer", y = "Mean Yield (kg/ha)") + 
+  theme_minimal()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
