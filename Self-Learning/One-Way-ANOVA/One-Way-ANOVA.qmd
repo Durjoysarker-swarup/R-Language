@@ -1,0 +1,135 @@
+---
+title: "One-Way-ANOVA"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 2
+---
+
+# One Way ANOVA
+
+
+## Load data
+
+```{r}
+data <- read.csv("G:/Lesson/Done/Research/R Language/R-Language/Self-Learning/One-Way-ANOVA/fertilizer_yield_for_anova.csv")
+data$Fertilizer <- as.factor(data$Fertilizer) # convert to factor so ANOVA treats it as categorical groups, not text or numeric values
+```
+
+## Create ANOVA Model
+
+To test whether mean yield differs among fertilizer groups
+
+```{r}
+model <- aov(Yield ~ Fertilizer, data = data)
+```
+
+## Assumption Checking
+
+Shows one way anova is reliable or not.
+
+### 1. Normality of Residuals
+
+```{r}
+shapiro.test(residuals(model))
+```
+
+**Interpretation:**
+
+-   p \> 0.05 → residuals are approximately normal → acceptable
+
+-   p \< 0.05 → deviation from normality → check plots before deciding
+
+**Understanding Normality**
+
+-   Normal data → values are evenly distributed around mean. Example: (15, 13, 14, 16)
+
+-   Non-normal data → extreme variation/outliers. Example: (2, 5, 20, 50)
+
+### 2. Homogeneity of Variance
+
+```{r}
+library(car)
+leveneTest(Yield ~ Fertilizer, data = data)
+```
+
+**Interpretation**
+
+1.  P-Value is more than 0.05, the variances across groups are more or less equal (homogeneous), perform the one-way ANOVA reliably.
+
+2.  P-Value is less than 0.05 the variances across groups are not more or less equal (not homogeneous), use caution. see the plot
+
+**Homogeneity**
+
+For understanding homogeneity need to understand variance. Variance means the spread of data in each group.
+
+Example: Group A: (13, 14, 15, 16) → small spread → low variance
+
+Group B: (10, 20, 30, 40) → large spread → high variance
+
+All groups have similar spread, the data is homogeneous. Ad one group is very spread out and others are tight, it's not homogeneous.
+
+### 3. Diagnostic Plots
+
+```{r}
+plot(model)
+```
+
+**What to check:**
+
+Residuals vs Fitted → should show random pattern (no structure)
+
+Normal Q-Q → points should lie near the straight line
+
+Scale-Location → spread should be consistent
+
+Residuals vs Leverage → detect outliers/influential points
+
+👉 These plots are more reliable than tests. Study more here!!!!
+
+## Perform anova
+
+```{r}
+summary(model)
+```
+
+**Interpretation:**
+
+p \< 0.05 → significant difference exists among groups
+
+p \> 0.05 → no strong evidence of difference
+
+ANOVA tells “difference exists”. It does NOT tell which groups differ.
+
+## Alternative (Kruskal-Wallis Test)\]
+
+**Use when**
+
+-   strong non-normality
+
+-   outliers present
+
+-   variance highly unequal
+```{r}
+krus <- read.csv("G:/Lesson/Done/Research/R Language/R-Language/Self-Learning/One-Way-ANOVA/non_normal_yield_data.csv")
+
+kruskal.test(Yield ~ Fertilizer, data = krus)
+```
+
+**Interpretation:**
+
+p \< 0.05 → at least one group differs
+
+p \> 0.05 → no evidence of difference
+
+
+
+
+
+
+
+
+
+
+
