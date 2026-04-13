@@ -1,0 +1,202 @@
+---
+title: "Post_hoc"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 3
+---
+
+## ANOVA clean workflow
+
+```{r}
+# Load Data & Prepare
+data <- read.csv("G:/Lesson/Done/Research/R Language/R-Language/Self-Learning/One-Way-ANOVA/agriculture_posthoc_data.csv")
+data$Treatment <- as.factor(data$Treatment)  # ensure categorical variable
+
+#Build ANOVA Model
+model <- aov(Yield ~ Treatment, data = data)
+
+#Check Assumptions
+##Normality of Residuals
+shapiro.test(residuals(model))
+```
+
+**Interpretation**
+
+p \> 0.05 → acceptable (not perfect, just no strong violation)
+
+p \< 0.05 → check plots before decision
+
+```{r}
+## Homogeneity of Variance
+
+library(car) 
+leveneTest(Yield ~ Treatment, data = data)
+```
+
+**Interpretation**
+
+p \> 0.05 → equal variance (good)
+
+p \< 0.05 → violation (be careful)
+
+⚠️ Decision Rule (Important)
+
+If assumptions roughly OK → proceed with ANOVA
+
+If strong violation → go to non-parametric (Kruskal)
+
+```{r}
+#Run ANOVA 
+summary(model)
+```
+
+**Interpretation**
+
+p \< 0.05 → reject null → at least one group differs → go for post hoc
+
+p \> 0.05 → fail to reject → stop (no post hoc)
+
+## Normally Distributed data
+
+### 1. Tukey’s HSD (BEST CHOICE)
+
+```{r}
+library(agricolae)
+tukey_result <- HSD.test(model, "Treatment", group = TRUE) # if group is TRUE, it will show the $group data and $comparison will be null. If the group is FALSE, it will how the comparison data and group will be none
+tukey_result
+```
+
+**Interpretation**
+
+-   \$means -\> show the mean yield per fertilizer
+
+-   \$comparison -\> signif (stars indicate significance) ..\*\*\* = highly significant (p \< 0.001) if \*\* = p \< 0.01 if \* = p \< 0.05
+
+-   \$Group -\> Same letter= no significant difference, Different letters = significantly different
+
+*Show the specific result:*
+
+`tukey_result$means`
+
+`tukey_result$groups`
+
+`tukey_result$comparison`
+
+**Why best:**
+
+controls error properly accepted in research papers
+
+**Use when:**
+
+-   3+ groups final report / publication
+
+-   Used mainly in agriculture papers
+
+### 2. LSD Test (Least Strict)
+
+```{r}
+library(agricolae) 
+lsd_result <- LSD.test(model, "Treatment", p.adj = "none")
+lsd_result
+```
+
+Same interpretation as Tukey.
+
+**LSD limitation:**
+
+LSD test is more liberal (less strict), so it's: Good for few treatments (2–4), exploratory / early analysis. You want high sensitivity (detect small differences)
+
+**Rule of Thumb**
+
+Not good for many groups → higher chance of false positives.
+
+-   2–3 groups → LSD is OK, especially for early or internal analysis
+
+-   3+ groups or final result/report → Prefer Tukey’s HSD
+
+-   If unsure, go with Tukey — it’s safer and accepted
+
+**Use LSD when**
+
+-   2–3 treatments only
+
+-   exploratory / early analysis
+
+-   you want high sensitivity (detect small differences)
+
+**Problem**
+
+high false positives.**That is why go with Tukey.**
+
+### 3. Duncan’s Test (Middle Ground)
+
+```{r}
+library(agricolae) 
+duncan_result <- duncan.test(model, "Treatment", group = TRUE)
+duncan_result
+```
+
+**Characteristics**
+
+-   more sensitive than Tukey
+
+-   less strict → more risky
+
+### Alternative using emmeans library(emmeans)
+
+#### LSD equivalent
+
+```{r}
+library(emmeans) 
+emmeans(model, pairwise ~ Treatment, adjust = "none")
+```
+
+#### Tukey
+
+```{r}
+library(emmeans) 
+emmeans(model, pairwise ~ Treatment, adjust = "tukey") 
+```
+
+### Difference Between the Test: 
+
+**1.** **Sensitivity** = How easily the test finds a difference
+
+-   High sensitivity = Finds small differences
+
+-   Low sensitivity = Only finds big differences
+
+**2. Strictness** = How careful the test is to avoid wrong results
+
+-   Strict test = Needs more evidence to say “groups are different”
+
+-   Less strict = Can say “different” even with less evidence (risky)
+
+Final Summary Table:
+
+| Test | When use | Sensitivity | Strictness | Error Control | Most Used |
+|----|----|----|----|----|----|
+| Turkey | Safe, journal standard, \>3 groups | Lower | High | Strong | Yes |
+| LSD | 2-3 groups, quick idea, early research |  High |  Low | None | Less |
+| Duncan | Grouping letters, medium strictness | High |  Medium | Some | Some Agri |
+
+## Dunn Test(non-parametric)
+
+If Assumptions FAIL → Non-Parametric Path (Kruskal-Wallis Test)
+
+`kruskal.test(Yield ~ Treatment, data = data)`
+
+**Interpretation**
+
+p \< 0.05 → groups differ → go for **Dunn’s test**
+
+```{r}
+library(FSA) 
+dunnTest(Yield ~ Treatment, data = data, method = "bonferroni")
+```
+
+**Interpretation**
+
+p.adj \< 0.05 → significant difference.

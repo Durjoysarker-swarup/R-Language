@@ -9,7 +9,6 @@ format:
 
 # One Way ANOVA
 
-
 ## Load data
 
 ```{r}
@@ -111,6 +110,7 @@ ANOVA tells “difference exists”. It does NOT tell which groups differ.
 -   outliers present
 
 -   variance highly unequal
+
 ```{r}
 krus <- read.csv("G:/Lesson/Done/Research/R Language/R-Language/Self-Learning/One-Way-ANOVA/non_normal_yield_data.csv")
 
@@ -123,13 +123,53 @@ p \< 0.05 → at least one group differs
 
 p \> 0.05 → no evidence of difference
 
+## ANOVA clean workflow
 
+```{r}
+# Load Data & Prepare
+data <- read.csv("G:/Lesson/Done/Research/R Language/R-Language/Self-Learning/One-Way-ANOVA/agriculture_posthoc_data.csv")
+data$Treatment <- as.factor(data$Treatment)  # ensure categorical variable
 
+#Build ANOVA Model
+model <- aov(Yield ~ Treatment, data = data)
 
+#Check Assumptions
+##Normality of Residuals
+shapiro.test(residuals(model))
+```
 
+**Interpretation**
 
+p \> 0.05 → acceptable (not perfect, just no strong violation)
 
+p \< 0.05 → check plots before decision
 
+```{r}
+## Homogeneity of Variance
 
+library(car) 
+leveneTest(Yield ~ Treatment, data = data)
+```
 
+**Interpretation**
 
+p \> 0.05 → equal variance (good)
+
+p \< 0.05 → violation (be careful)
+
+⚠️ Decision Rule (Important)
+
+If assumptions roughly OK → proceed with ANOVA
+
+If strong violation → go to non-parametric (Kruskal)
+
+```{r}
+#Run ANOVA 
+summary(model)
+```
+
+**Interpretation**
+
+p \< 0.05 → reject null → at least one group differs → go for post hoc
+
+p \> 0.05 → fail to reject → stop (no post hoc)
