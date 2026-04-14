@@ -1,0 +1,159 @@
+---
+title: "Two-Way-ANOVA"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 3
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+## TWO-WAY ANOVA
+
+### Data Loading
+
+```{r}
+data <- read.csv("G:/Lesson/Done/Research/R Language/R-Language/Self-Learning/Two_Way_ANOVA/agriculture_two_way_anova.csv")
+data$Fertilizer <- as.factor(data$Fertilizer)
+data$Irrigation <- as.factor(data$Irrigation)
+```
+
+### Model Building
+
+```{r}
+model <- aov(Yield ~ Fertilizer * Irrigation, data = data)
+```
+
+### Assumption Checking
+
+#### a. Normality of residuals
+
+```{r}
+shapiro.test(residuals(model))
+```
+
+p \> 0.05 → residuals are normally distributed ✔
+
+#### b. Homogeneity of variance
+
+```{r}
+library(car)
+leveneTest(Yield ~ Fertilizer * Irrigation, data = data)
+```
+
+p \> 0.05 → equal variance assumption satisfied ✔
+
+#### c. Residual diagnostics
+
+```{r}
+plot(model)
+```
+
+No strong pattern → model is valid ✔
+
+### Perform ANOVA
+
+```{r}
+summary(model)
+```
+
+**Testing 3 hypotheses:**
+
+-   Fertilizer effect (main effect)
+
+-   Irrigation effect (main effect)
+
+-   Fertilizer × Irrigation interaction (joint effect)
+
+### **Interpretation of ANOVA Table**
+
+**Main Effects-**
+
+Fertilizer effect : p \< 0.05 → Fertilizer types are NOT equal. Means at
+least one fertilizer changes yield
+
+Irrigation effect : p \< 0.05 → Irrigation levels significantly affect
+yield
+
+**CRITICAL WARNING (Most beginners miss this)**
+
+If interaction is significant, main effects alone are NOT reliable
+because:
+
+Effect of fertilizer changes depending on irrigation So “average
+fertilizer effect” becomes misleading
+
+**Interaction Effect (Most Important Part)**
+
+Fertilizer × Irrigation: p \< 0.05 → Interaction exists
+
+Correct meaning:
+
+The effect of Fertilizer on Yield depends on Irrigation level (and vice
+versa)
+
+NOT:
+
+-   “They are related” ❌
+
+-   “Both are important” ❌
+
+### Proper Statistical Decision Rule
+
+**Case 1: Interaction NOT significant**
+
+Interpret fertilizer main effect and Irrigation main effect separately
+
+**Case 2: Interaction significant**
+
+IGNORE main effects
+
+Focus on: Interaction plots, Post-hoc within each irrigation level
+
+### Interaction Plot
+
+```{r}
+with(data, interaction.plot(Fertilizer, Irrigation, Yield))
+```
+
+#### **Interpret Interaction Plot:**
+
+**Step 1: Check line crossing**
+
+-   Lines crossing → strong interaction
+
+-   Lines parallel → no interaction
+
+**Step 2: Interpret patterns scientifically**
+
+Example interpretation:
+
+**Fertilizer A:**
+
+High irrigation → highest yield
+
+Low irrigation → sharp drop
+
+That's indicate **HIGH water dependency**
+
+**Fertilizer B:**
+
+Stable across irrigation levels → drought-tolerant performance
+
+**Fertilizer C:**
+
+Low performance everywhere → generally inefficient
+
+8.  Stronger Statistical Add-ons (YOU SHOULD ADD THIS) (A) Mean Table
+    (Very Important in research) aggregate(Yield \~ Fertilizer +
+    Irrigation, data = data, mean) (B) Post-hoc Test (ONLY if needed)
+
+If interaction is significant:
+
+TukeyHSD(model)
+
+But better approach:
+
+Analyze simple effects instead of global Tukey blindly
