@@ -7,4 +7,3 @@ editor: visual
 # Welcome
 
 This is the homepage.
-

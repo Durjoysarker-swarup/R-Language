@@ -67,7 +67,7 @@ summary(model)
 
 -   Fertilizer × Irrigation interaction (joint effect)
 
-### **Interpretation of ANOVA Table**
+### Interpretation of ANOVA Table
 
 **Main Effects-**
 
@@ -118,7 +118,7 @@ Focus on: Interaction plots, Post-hoc within each irrigation level
 with(data, interaction.plot(Fertilizer, Irrigation, Yield))
 ```
 
-#### **Interpret Interaction Plot:**
+#### Interpret Interaction Plot:
 
 **Step 1: Check line crossing**
 
@@ -146,14 +146,49 @@ Stable across irrigation levels → drought-tolerant performance
 
 Low performance everywhere → generally inefficient
 
-8.  Stronger Statistical Add-ons (YOU SHOULD ADD THIS) (A) Mean Table
-    (Very Important in research) aggregate(Yield \~ Fertilizer +
-    Irrigation, data = data, mean) (B) Post-hoc Test (ONLY if needed)
+### Mean table
 
-If interaction is significant:
+```{r}
+aggregate(Yield ~ Fertilizer + Irrigation, data = data, mean)
+```
 
+## POST HOC
+### Global turkey
+```{r}
 TukeyHSD(model)
+```
 
-But better approach:
+**Problem with Global Tukey**
 
-Analyze simple effects instead of global Tukey blindly
+This compares all combinations together, which:
+
+-   mixes irrigation + fertilizer effects
+
+-   hides the actual interaction structure
+
+👉 Result = confusing + misleading conclusions. That's why this is
+technically correct but scientifically wrong.
+
+### Correct Approach: Simple Effects Analysis
+#### 1. Effect of Fertilizer at each Irrigation level
+```{r}
+#Effects of fertilizer when irrigation low
+model_low <- aov(Yield ~ Fertilizer, data = subset(data, Irrigation == "Low"))
+TukeyHSD(model_low)
+
+
+#Effects of fertilizer when irrigation high
+model_high <- aov(Yield ~ Fertilizer, data = subset(data, Irrigation == "High"))
+TukeyHSD(model_high)
+```
+
+#### 2. Effect of Irrigation at each Fertilizer
+```{r}
+model_A <- aov(Yield ~ Irrigation, data = subset(data, Fertilizer == "A"))
+TukeyHSD(model_A)
+```
+
+
+
+
+
