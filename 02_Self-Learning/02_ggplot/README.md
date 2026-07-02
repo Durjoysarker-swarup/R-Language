@@ -1,17 +1,18 @@
 # Advanced Visualization with ggplot2
 
-**Focus:** Create publication-quality plots using the grammar of graphics
+Create publication-quality plots using the grammar of graphics. Effective visualization is essential for both exploring data and communicating research findings to diverse audiences.
 
 ---
 
 ## 🎯 Learning Objectives
 
 By the end of this module, you will:
-- ✅ Understand the grammar of graphics principles
-- ✅ Build plots layer-by-layer
-- ✅ Create complex multi-variable visualizations
-- ✅ Implement time series and faceted plots
-- ✅ Customize themes and aesthetics for publications
+- Understand the grammar of graphics principles
+- Build plots layer-by-layer
+- Create complex multi-variable visualizations
+- Implement time series and faceted plots
+- Customize themes and aesthetics for publications
+- Choose appropriate plot types for different data
 
 ---
 
@@ -24,298 +25,204 @@ By the end of this module, you will:
 
 ---
 
-## 🏗️ Grammar of Graphics
+## 📖 Core Concepts
 
-Every ggplot2 plot has these components:
+### **Grammar of Graphics**
+ggplot2 is built on the philosophy that plots have consistent components. Every visualization consists of:
 
-```
-ggplot(data, aes(x, y)) +      # Data + Aesthetics
-  geom_point() +               # Geometric layer
-  facet_wrap(~Region) +        # Faceting
-  scale_color_manual(...) +    # Scales
-  theme_classic()              # Theme
-```
+1. **Data** - The dataset being visualized
+2. **Aesthetics** - Visual properties (x, y, color, size, shape)
+3. **Geometries** - How data is displayed (points, lines, bars, boxes)
+4. **Scales** - How data maps to visual properties
+5. **Facets** - How to split into multiple subplots
+6. **Themes** - Overall visual design
+
+Building plots layer-by-layer allows flexibility and professional control over visualization.
+
+---
 
 ### **Essential Layers**
 
-1. **Data & Aesthetics** - `aes()`
-```r
-ggplot(data, aes(
-  x = Treatment,
-  y = Yield,
-  color = Region,     # Color by region
-  size = PlantHeight, # Size by height
-  shape = Variety     # Shape by variety
-))
-```
+**Data & Aesthetics Mapping**
+Specify which variables go on axes and how to encode other dimensions through color, size, shape.
 
-2. **Geometric Objects** - `geom_*()`
-```r
-geom_point()      # Scatter plot
-geom_line()       # Line plot
-geom_boxplot()    # Box plot
-geom_bar()        # Bar chart
-geom_violin()     # Violin plot
-geom_jitter()     # Jittered points
-geom_smooth()     # Trend line
-geom_histogram()  # Histogram
-```
+**Geometric Objects**
+Choose visualization type: scatter (points), line plot, bar chart, box plot, violin plot, histogram, etc.
 
-3. **Faceting** - `facet_*()`
-```r
-facet_wrap(~Region)           # Wrap by one variable
-facet_grid(Treatment~Region)   # Grid by two variables
-```
+**Statistical Layers**
+Add computed summaries like trend lines, means, or confidence intervals.
 
-4. **Scales** - `scale_*()`
-```r
-scale_color_manual(values = c("A" = "red", "B" = "blue"))
-scale_y_continuous(limits = c(0, 100))
-scale_x_date(date_labels = "%Y-%m")
-```
+**Faceting**
+Split plot into multiple subplots by categorical variables for easy comparison.
 
-5. **Themes** - `theme_*()`
-```r
-theme_classic()      # Minimal background
-theme_minimal()      # Even cleaner
-theme_bw()           # Black & white
-theme_dark()         # Dark background
-```
+**Scales**
+Control how data values map to visual properties (colors, axis limits, legends).
+
+**Themes**
+Customize overall appearance including backgrounds, grid lines, text formatting.
 
 ---
 
 ## 📊 Common Plot Types
 
-### **1. Scatter Plot**
-```r
-ggplot(data, aes(x = Temperature, y = Yield)) +
-  geom_point(size = 3, alpha = 0.6) +
-  geom_smooth(method = "lm", se = TRUE) +
-  theme_classic() +
-  labs(title = "Yield vs Temperature",
-       x = "Temperature (°C)", y = "Yield (kg/ha)")
-```
+### **Scatter Plot**
+Shows relationship between two continuous variables. Ideal for identifying correlations and patterns.
 
-### **2. Line Plot (Time Series)**
-```r
-data$Date <- as.Date(data$Date)
+### **Line Plot**
+Displays trends over time or continuous variables. Essential for time series and growth curves.
 
-ggplot(data, aes(x = Date, y = PlantHeight, color = Variety)) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +
-  facet_wrap(~Region) +
-  theme_classic() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Plant Growth Over Time",
-       x = "Date", y = "Height (cm)")
-```
+### **Box Plot**
+Compares distributions across groups. Shows median, quartiles, and outliers for group comparison.
 
-### **3. Box Plot (Comparison)**
-```r
-ggplot(data, aes(x = Fertilizer, y = Yield, fill = Fertilizer)) +
-  geom_boxplot(alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.3) +
-  theme_classic() +
-  labs(title = "Yield Distribution by Fertilizer",
-       x = "Fertilizer Type", y = "Yield (kg/ha)")
-```
+### **Bar Chart**
+Compares values across categories. Grouped or stacked versions compare multiple factors.
 
-### **4. Bar Plot (Grouped)**
-```r
-ggplot(data, aes(x = Fertilizer, y = Yield, fill = Region)) +
-  geom_col(position = "dodge") +
-  geom_errorbar(aes(ymin = Yield - SE, ymax = Yield + SE),
-                width = 0.2, position = position_dodge(0.9)) +
-  theme_classic() +
-  labs(title = "Mean Yield by Fertilizer and Region",
-       x = "Fertilizer", y = "Yield (kg/ha)")
-```
+### **Violin Plot**
+Shows full distribution shape within groups. More informative than box plots alone.
 
-### **5. Violin Plot (Distribution)**
-```r
-ggplot(data, aes(x = Treatment, y = Yield, fill = Treatment)) +
-  geom_violin(alpha = 0.6) +
-  geom_boxplot(width = 0.2, alpha = 0.8) +
-  theme_minimal() +
-  labs(title = "Yield Distribution by Treatment")
-```
+### **Time Series**
+Line plot with temporal x-axis. Ideal for crop growth, phenological data, or yield trends.
 
-### **6. Faceted Plots (Comparison)**
-```r
-ggplot(data, aes(x = Dose, y = Response, color = Variety)) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~Region, scales = "free_y") +
-  theme_classic() +
-  labs(title = "Dose-Response Curves by Region")
-```
+### **Faceted Plots**
+Multiple subplots split by categorical variables for systematic comparison across regions, blocks, or treatments.
 
 ---
 
 ## 🎨 Customization
 
-### **Colors**
-```r
-# Manual colors
-scale_color_manual(values = c("A" = "#E69F00", "B" = "#56B4E9"))
-
-# Palettes
-scale_color_brewer(palette = "Set1")
-scale_color_viridis_d()  # Colorblind-friendly
-```
+### **Color & Aesthetics**
+- Manual color assignment for consistency
+- Color-blind friendly palettes (viridis)
+- Semantic color usage (red for bad, green for good)
+- Consistency across figures
 
 ### **Themes**
-```r
-# Full customization
-theme(
-  plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-  axis.title = element_text(size = 12, face = "bold"),
-  axis.text = element_text(size = 10),
-  legend.position = "bottom",
-  panel.background = element_blank(),
-  panel.grid.major = element_line(color = "gray90")
-)
-```
+- Minimal themes for clean publication-ready plots
+- Classic themes with gray background
+- Black & white themes
+- Custom theme creation for organization branding
 
-### **Labels & Titles**
-```r
-labs(
-  title = "Main Title",
-  subtitle = "Subtitle",
-  caption = "Source: Field data 2024",
-  x = "X Axis Label",
-  y = "Y Axis Label",
-  color = "Legend Title",
-  fill = "Another Legend"
-)
-```
+### **Labels & Legends**
+- Descriptive axis labels with units
+- Informative plot titles
+- Clear legend titles
+- Appropriate text sizing
+
+### **Error Bars**
+- Standard deviation showing spread
+- Standard error for precision
+- Confidence intervals for formal inference
+- Consistent across multiple plots
 
 ---
 
-## 📈 Real Agricultural Examples
+## 📊 Agricultural Applications
 
-### **Example 1: Fertilizer Trial Summary**
-```r
-library(dplyr)
-library(ggplot2)
+### **Fertilizer Trials**
+Compare yield across fertilizer types with error bars and grouped displays.
 
-summary <- data %>%
-  group_by(Fertilizer, Region) %>%
-  summarise(
-    mean_yield = mean(Yield),
-    se_yield = sd(Yield) / sqrt(n()),
-    .groups = 'drop'
-  )
+### **Variety Comparisons**
+Show performance differences across crop varieties with error visualization.
 
-ggplot(summary, aes(x = Fertilizer, y = mean_yield, fill = Region)) +
-  geom_col(position = "dodge") +
-  geom_errorbar(aes(ymin = mean_yield - se_yield,
-                    ymax = mean_yield + se_yield),
-                width = 0.2, position = position_dodge(0.9)) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
-  theme_classic() +
-  theme(legend.position = "top") +
-  labs(title = "Crop Yield by Fertilizer Type",
-       y = "Mean Yield (kg/ha)", x = "Fertilizer")
-```
+### **Growth Curves**
+Display plant development over time, potentially split by variety or region.
 
-### **Example 2: Growth Curve Over Time**
-```r
-data$Date <- as.Date(data$Date)
+### **Treatment Interactions**
+Visualize how treatments perform at different levels of another factor.
 
-ggplot(data, aes(x = Date, y = PlantHeight, color = Variety)) +
-  geom_line(size = 1) +
-  geom_smooth(method = "loess", se = TRUE, alpha = 0.2) +
-  facet_wrap(~Region, scales = "free_y") +
-  theme_classic() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Plant Growth Trajectories",
-       x = "Date", y = "Plant Height (cm)",
-       color = "Variety")
-```
-
-### **Example 3: Treatment Comparison**
-```r
-ggplot(data, aes(x = Treatment, y = Yield, fill = Treatment)) +
-  geom_boxplot(alpha = 0.7, outlier.shape = NA) +
-  geom_jitter(width = 0.2, alpha = 0.4, size = 2) +
-  stat_summary(fun = mean, geom = "point", size = 3, color = "red",
-               aes(shape = "Mean")) +
-  facet_wrap(~Block) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
-  ) +
-  labs(title = "Yield by Treatment Across Blocks",
-       y = "Yield (kg/ha)", x = "Treatment")
-```
+### **Regional Analysis**
+Faceted plots comparing patterns across growing regions or environmental conditions.
 
 ---
 
-## ✅ Best Practices for Publication
+## 🎓 Best Practices for Publication
 
-1. **Clear Titles & Labels**
-   - Title should be informative, not just "Figure 1"
-   - Units must be included (e.g., "Yield (kg/ha)")
-   - Axis labels should be complete sentences
+### **Clarity**
+- Titles should be informative, not just "Figure 1"
+- All axes must include units
+- Legend titles should be descriptive
+- Avoid unnecessary decorations
 
-2. **Include Error Bars**
-   - Show variability (SD, SE, or CI)
-   - Critical for research plots
+### **Data Representation**
+- Choose plot type that best shows your data
+- Include error bars for uncertainty
+- Use appropriate scales to avoid misleading impressions
+- Highlight important patterns
 
-3. **Choose Appropriate Plots**
-   - Scatter plot for relationships
-   - Box plot for distributions and comparisons
-   - Line plot for time series
-   - Bar plot for group comparisons
+### **Aesthetics**
+- Use color-blind friendly palettes
+- Maintain consistency across multiple figures
+- Match font sizes to document
+- Professional color schemes
 
-4. **Use Colorblind-Friendly Palettes**
-   ```r
-   scale_color_viridis_d()  # Works for all color blindness types
-   ```
-
-5. **Consistent Themes**
-   ```r
-   theme_set(theme_classic())  # Apply to all plots
-   ```
-
-6. **Save in Vector Format**
-   ```r
-   ggsave("figure.pdf", width = 8, height = 6, dpi = 300)
-   ```
+### **Reproducibility**
+- Save in vector format (PDF, SVG) for scalability
+- Include data source information
+- Document visualization decisions
+- Use consistent themes across publication
 
 ---
 
-## 🎓 Exercises
+## 📈 Learning Path
 
-**Using provided datasets:**
+### Beginner
+- Basic scatter plots and line plots
+- Simple color mapping
+- Axis labels and titles
 
-1. Create a scatter plot of Temperature vs Yield with trend line
-2. Make a time series plot of plant growth over days
-3. Compare yield distributions across treatments with box plots
-4. Create faceted plots by region
-5. Customize colors, themes, and labels for publication
+### Intermediate
+- Multiple geometries in one plot
+- Faceting for group comparison
+- Error bar addition
+- Theme customization
+
+### Advanced
+- Complex multi-variable visualizations
+- Statistical layers (trend lines, confidence bands)
+- Interactive layering
+- Custom theme development
+
+---
+
+## 💡 Decision Guide
+
+**Comparing groups?** → Box plot or violin plot  
+**Showing relationships?** → Scatter plot (possibly with trend line)  
+**Tracking over time?** → Line plot with dates  
+**Comparing multiple categories?** → Bar chart or faceted plots  
+**Looking at distributions?** → Histogram or density plot  
+**Multiple dimensions?** → Use color, size, shape, or facets  
 
 ---
 
 ## 📚 Resources
 
-- [ggplot2 official website](https://ggplot2.tidyverse.org/)
-- [ggplot2 book online](https://ggplot2-book.org/)
-- [R Graphics Cookbook](https://r-graphics.org/)
-- [Color palettes for ggplot2](https://r-graph-gallery.com/ggplot2-color.html)
+- ggplot2 official website and documentation
+- ggplot2 book online
+- R Graphics Cookbook for common patterns
+- Color palette resources for accessible visualization
+
+---
+
+## 🎯 Exercises
+
+See `Visualization.qmd` for hands-on exercises using included agricultural datasets.
 
 ---
 
 ## Next Steps
 
-1. Master faceting for complex comparisons
-2. Learn statistical summaries within plots
-3. Create custom themes for your organization
-4. Use plots for exploratory data analysis (Week 1 → Week 2)
-5. Apply to visualize statistical test results (Week 3-4)
+After mastering ggplot2 visualization:
+1. Apply to exploratory data analysis before formal testing
+2. Create plots for statistical test results (Week 3-4)
+3. Develop consistent visualization style
+4. Integrate with dplyr for data preparation
+5. Create professional publication figures
 
 ---
 
 **Last Updated:** July 2, 2026
+
+---
+
+> **Tip:** Start with the basic plot types, then layer additional components. The modular nature of ggplot2 allows building complexity step-by-step.
