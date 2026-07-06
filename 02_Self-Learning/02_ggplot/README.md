@@ -135,34 +135,6 @@ Faceted plots comparing patterns across growing regions or environmental conditi
 
 ---
 
-## 🎓 Best Practices for Publication
-
-### **Clarity**
-- Titles should be informative, not just "Figure 1"
-- All axes must include units
-- Legend titles should be descriptive
-- Avoid unnecessary decorations
-
-### **Data Representation**
-- Choose plot type that best shows your data
-- Include error bars for uncertainty
-- Use appropriate scales to avoid misleading impressions
-- Highlight important patterns
-
-### **Aesthetics**
-- Use color-blind friendly palettes
-- Maintain consistency across multiple figures
-- Match font sizes to document
-- Professional color schemes
-
-### **Reproducibility**
-- Save in vector format (PDF, SVG) for scalability
-- Include data source information
-- Document visualization decisions
-- Use consistent themes across publication
-
----
-
 ## 📈 Learning Path
 
 ### Beginner
@@ -184,25 +156,7 @@ Faceted plots comparing patterns across growing regions or environmental conditi
 
 ---
 
-## 💡 Decision Guide
 
-**Comparing groups?** → Box plot or violin plot  
-**Showing relationships?** → Scatter plot (possibly with trend line)  
-**Tracking over time?** → Line plot with dates  
-**Comparing multiple categories?** → Bar chart or faceted plots  
-**Looking at distributions?** → Histogram or density plot  
-**Multiple dimensions?** → Use color, size, shape, or facets  
-
----
-
-## 📚 Resources
-
-- ggplot2 official website and documentation
-- ggplot2 book online
-- R Graphics Cookbook for common patterns
-- Color palette resources for accessible visualization
-
----
 
 ## 🎯 Exercises
 
@@ -221,7 +175,7 @@ After mastering ggplot2 visualization:
 
 ---
 
-**Last Updated:** July 2, 2026
+**Last Updated:** July 6, 2026
 
 ---
 
