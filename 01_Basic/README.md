@@ -46,7 +46,7 @@ By completing Week 1, you will be able to:
 - Writing custom functions
 - Using apply family functions
 
-
+---
 
 ### **2️⃣ Missing Data Handling** (`02_Missing value.qmd`)
 
@@ -200,7 +200,7 @@ After mastering Week 1, you're ready for:
 
 ---
 
-**Last Updated:** July 2, 2026
+**Last Updated:** July 6, 2026
 
 ---
 
