@@ -55,7 +55,7 @@ Test if residuals follow a normal distribution. Procedures like Shapiro-Wilk tes
 Test whether groups have equal variability. Levene's test is standard for this.
 
 **What it means:** Spread around group means should be similar across all groups.  
-**When violated:** Welch's adjustment or non-parametric alternatives available.
+
 
 ### **3. Independence**
 Ensure observations are independent (not repeated measures or spatial clusters).
@@ -120,8 +120,6 @@ When assumptions are violated:
 **Kruskal-Wallis Test** - Non-parametric alternative to ANOVA when normality fails
 
 **Dunn Test** - Post-hoc test following Kruskal-Wallis
-
-**Friedman Test** - For repeated measures designs
 
 These tests don't assume normal distributions but are less powerful if normality holds.
 
@@ -198,18 +196,8 @@ Data violating normality assumptions for non-parametric testing practice.
 
 **Visualize results** - Plots communicate better than tables
 
-**Report everything needed for reproduction** - Enable others to verify work
-
 ---
 
-## 📚 Resources
-
-- agricolae package documentation
-- emmeans package documentation
-- Statistical testing guides and tutorials
-- Agricultural statistics textbooks and references
-
----
 
 ## 🎯 Exercises
 
@@ -222,12 +210,11 @@ See `One-Way-ANOVA.qmd` and `Post_hoc.qmd` for hands-on practice with included d
 After mastering one-way ANOVA:
 1. Move to `04_Two_Way_ANOVA/` for multi-factor designs
 2. Learn about interaction effects in experiments
-3. Advance to mixed models for complex hierarchies
-4. Apply to your own research data
+3. Apply to your own research data
 
 ---
 
-**Last Updated:** July 2, 2026
+**Last Updated:** July 6, 2026
 
 ---
 
