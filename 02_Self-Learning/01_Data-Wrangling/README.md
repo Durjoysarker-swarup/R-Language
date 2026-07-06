@@ -48,9 +48,6 @@ data %>% select(Treatment, Yield, Region)
 # Drop columns
 data %>% select(-SoilType)
 
-# Select by pattern
-data %>% select(starts_with("Y"))  # Yield columns
-data %>% select(contains("temp"))   # Temperature columns
 ```
 
 ### 3. **mutate()** - Create/modify columns
@@ -61,11 +58,7 @@ data %>% mutate(Yield_per_ha = Yield * 10)
 # Multiple mutations
 data %>% mutate(
   Yield_scaled = scale(Yield),
-  Treatment_group = case_when(
-    Fertilizer %in% c("A", "B") ~ "Organic",
-    TRUE ~ "Inorganic"
-  )
-)
+  Yield_per_ha = Yield * 10)
 
 # Conditional mutations
 data %>% mutate(
@@ -89,8 +82,7 @@ data %>%
   group_by(Fertilizer) %>%
   summarise(
     mean_yield = mean(Yield, na.rm = TRUE),
-    sd_yield = sd(Yield, na.rm = TRUE),
-    n = n()
+    sd_yield = sd(Yield, na.rm = TRUE)
   )
 
 # Multiple summary statistics
@@ -150,14 +142,6 @@ data %>% arrange(desc(Yield))
 data %>% arrange(Treatment, desc(Yield))
 ```
 
-### **distinct()** - Remove duplicates
-```r
-# Unique treatments
-data %>% distinct(Treatment)
-
-# Unique combinations
-data %>% distinct(Fertilizer, Region)
-```
 
 ### **case_when()** - Conditional assignment (cleaner than nested ifelse)
 ```r
@@ -169,17 +153,6 @@ data %>% mutate(
     TRUE ~ "Very High"
   )
 )
-```
-
-### **across()** - Apply to multiple columns
-```r
-# Scale all numeric columns
-data %>%
-  mutate(across(where(is.numeric), scale))
-
-# Round specific columns
-data %>%
-  mutate(across(contains("Yield"), ~round(., 2)))
 ```
 
 ### **pivot_wider()** & **pivot_longer()** - Reshape data
@@ -200,55 +173,6 @@ data %>%
   )
 ```
 
----
-
-## 📊 Practical Example: Complete Workflow
-
-### **Scenario:** Analyze fertilizer effects on crop yield by region
-
-```r
-library(dplyr)
-library(ggplot2)
-
-# Load data
-data <- read.csv("fertilizer_yield_data.csv")
-
-# 1. Clean and prepare
-cleaned <- data %>%
-  filter(!is.na(Yield)) %>%  # Remove missing
-  mutate(
-    Yield_kg_ha = Yield * 100,  # Convert units
-    Treatment_type = case_when(
-      Fertilizer %in% c("A", "B") ~ "Organic",
-      TRUE ~ "Synthetic"
-    )
-  )
-
-# 2. Create summary table
-summary_table <- cleaned %>%
-  group_by(Fertilizer, Region) %>%
-  summarise(
-    Count = n(),
-    Mean = mean(Yield_kg_ha, na.rm = TRUE),
-    SD = sd(Yield_kg_ha, na.rm = TRUE),
-    SE = SD / sqrt(Count),
-    CV = (SD / Mean) * 100,
-    .groups = 'drop'
-  ) %>%
-  arrange(Region, desc(Mean))
-
-# 3. Save for reporting
-write.csv(summary_table, "summary_output.csv", row.names = FALSE)
-
-# 4. Visualize
-ggplot(summary_table, aes(x = Fertilizer, y = Mean, fill = Region)) +
-  geom_col(position = "dodge") +
-  geom_errorbar(aes(ymin = Mean - SE, ymax = Mean + SE),
-                width = 0.2, position = position_dodge(0.9)) +
-  theme_minimal() +
-  labs(title = "Mean Yield by Fertilizer and Region",
-       y = "Yield (kg/ha)", x = "Fertilizer Type")
-```
 
 ---
 
@@ -274,17 +198,6 @@ ggplot(summary_table, aes(x = Fertilizer, y = Mean, fill = Region)) +
 
 ---
 
-## 🎓 Exercises
-
-**Dataset:** `fertilizer_yield_data.csv`
-
-1. **Filter:** Select only fertilizer A treatments with Yield > 50
-2. **Select:** Keep only Fertilizer, Region, and Yield columns
-3. **Mutate:** Create new column for Yield category (Low/Medium/High)
-4. **Group & Summarise:** Mean and SD yield by fertilizer type
-5. **Chain:** Complete workflow with filter → mutate → group → summarise
-
----
 
 ## 📚 Resources
 
@@ -298,10 +211,8 @@ ggplot(summary_table, aes(x = Fertilizer, y = Mean, fill = Region)) +
 
 After mastering dplyr:
 1. Move to **02_ggplot/** for visualizing your transformed data
-2. Learn **pivot_wider/pivot_longer** for reshaping
 3. Combine with **ggplot2** for exploratory data analysis
-4. Use summaries as input for **statistical tests** (Week 3-4)
 
 ---
 
-**Last Updated:** July 2, 2026
+**Last Updated:** July 6, 2026
