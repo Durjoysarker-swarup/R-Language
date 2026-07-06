@@ -46,63 +46,7 @@ By completing Week 1, you will be able to:
 - Writing custom functions
 - Using apply family functions
 
-**Key Code Patterns:**
-```r
-# Working directory
-getwd()
-setwd("path/to/directory")
 
-# Data types
-typeof(x)
-class(x)
-
-# Vectors & indexing
-v <- c(1, 2, 3, 4, 5)
-v[c(1, 3, 5)]        # Select specific indices
-v[v > 3]             # Logical subsetting
-
-# Data frames
-df <- data.frame(col1 = 1:5, col2 = letters[1:5])
-df$col1              # Access by name
-df[1, ]              # First row
-df[, 2]              # Second column
-
-# Functions
-my_func <- function(x, y) {
-  result <- x + y
-  return(result)
-}
-
-# Conditionals
-if (x > 0) {
-  print("Positive")
-} else if (x == 0) {
-  print("Zero")
-} else {
-  print("Negative")
-}
-
-# Loops
-for (i in 1:10) {
-  print(i)
-}
-```
-
-**Agricultural Example:**
-```r
-# Calculate BMI for agricultural workers
-height <- c(165, 170, 175)  # cm
-weight <- c(65, 72, 80)     # kg
-
-BMI <- weight / (height/100)^2
-
-# Categorize health status
-health_status <- ifelse(BMI < 18.5, "Underweight",
-                        ifelse(BMI < 25, "Normal",
-                               ifelse(BMI < 30, "Overweight", "Obese")))
-```
-
----
 
 ### **2️⃣ Missing Data Handling** (`02_Missing value.qmd`)
 
@@ -113,29 +57,6 @@ health_status <- ifelse(BMI < 18.5, "Underweight",
 - VIM package for visualizing missingness
 - mice package for multiple imputation
 
-**Common Tasks:**
-
-```r
-# Detect missing data
-is.na(x)
-sum(is.na(df))
-colSums(is.na(df))
-
-# Visualize missingness
-library(VIM)
-aggr(df)  # Show proportion of missing per column
-
-# Remove missing
-df_clean <- na.omit(df)
-
-# Impute with mean
-df$col[is.na(df$col)] <- mean(df$col, na.rm = TRUE)
-
-# Multiple Imputation by Chained Equations (MICE)
-library(mice)
-imputed <- mice(df, m = 5, method = 'pmm')
-df_complete <- complete(imputed, action = 1)
-```
 
 **When to Use Each Method:**
 - **Deletion:** < 5% missing, MCAR (Missing Completely At Random)
@@ -152,49 +73,6 @@ df_complete <- complete(imputed, action = 1)
 - Creating custom statistics functions
 - Identifying outliers and distributions
 
-**Essential Functions:**
-
-```r
-# Basic exploration
-head(df)           # First 6 rows
-tail(df)           # Last 6 rows
-nrow(df)           # Number of rows
-ncol(df)           # Number of columns
-names(df)          # Column names
-str(df)            # Structure overview
-summary(df)        # Statistical summary
-
-# Descriptive statistics
-mean(x, na.rm = TRUE)
-median(x, na.rm = TRUE)
-sd(x, na.rm = TRUE)
-var(x, na.rm = TRUE)
-quantile(x, probs = c(0.25, 0.5, 0.75))
-
-# Custom mode function
-getmode <- function(x) {
-  freq <- table(x)
-  names(freq)[which.max(freq)]
-}
-
-# Correlation matrix
-cor(df[, c("col1", "col2", "col3")])
-```
-
-**Agricultural Example:**
-```r
-# Analyze yield data
-yield_data <- read.csv("agri_dataset.csv")
-
-# Quick overview
-summary(yield_data)
-
-# By treatment group
-tapply(yield_data$Yield, yield_data$Treatment, mean)
-tapply(yield_data$Yield, yield_data$Treatment, sd)
-```
-
----
 
 ### **4️⃣ Visualization** (`04_Vizualization.qmd`)
 
@@ -205,59 +83,6 @@ tapply(yield_data$Yield, yield_data$Treatment, sd)
 - Layering and customization
 - Time series visualization
 
-**Base R Plotting:**
-
-```r
-# Scatter plot
-plot(x, y, main = "Title", xlab = "X", ylab = "Y", 
-     col = "blue", pch = 16)
-
-# Line plot
-plot(x, y, type = "l", col = "red", lwd = 2)
-
-# Overlaying multiple series
-plot(x, y1, type = "l", col = "blue")
-lines(x, y2, col = "red")
-legend("topright", c("Series 1", "Series 2"), 
-       col = c("blue", "red"), lty = 1)
-
-# Bar plot
-barplot(table(data$category), col = "steelblue")
-
-# Box plot
-boxplot(Value ~ Group, data = df, col = "lightblue")
-```
-
-**ggplot2 Approach:**
-
-```r
-library(ggplot2)
-
-# Basic structure
-ggplot(data, aes(x = var1, y = var2)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = TRUE) +
-  theme_classic() +
-  labs(title = "Main Title", 
-       x = "X Label", 
-       y = "Y Label")
-
-# Multiple geometries
-ggplot(data, aes(x = Treatment, y = Yield, fill = Treatment)) +
-  geom_boxplot() +
-  geom_jitter(width = 0.2, alpha = 0.5) +
-  facet_wrap(~ Region) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-# Time series
-data$Date <- as.Date(data$Date)
-ggplot(data, aes(x = Date, y = Value, color = Region)) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~ Region) +
-  theme_classic()
-```
 
 **Agricultural Examples:**
 - Yield vs. fertilizer dose scatter plot
@@ -276,62 +101,8 @@ ggplot(data, aes(x = Date, y = Value, color = Region)) +
 - Using dplyr for data summarization
 - Interpreting p-values and effect sizes
 
-**Hypothesis Testing Workflow:**
-
-```r
-# 1. Check assumptions
-library(car)
-shapiro.test(data$yield)      # Normality (p > 0.05 = normal)
-leveneTest(yield ~ group)     # Homogeneity (p > 0.05 = equal variances)
-
-# 2. Perform test
-result <- t.test(group1, group2, var.equal = TRUE)
-result <- aov(value ~ group, data = data)
-
-# 3. Interpret results
-summary(result)                # Get p-value and statistics
-```
-
-**t-Test Example:**
-```r
-# Compare fertilizer types A vs B
-fert_A <- c(45, 48, 42, 50, 46)
-fert_B <- c(52, 55, 50, 58, 54)
-
-t.test(fert_A, fert_B, var.equal = TRUE)
-# p-value < 0.05 → significant difference
-
-# Using formula notation
-t.test(Yield ~ Fertilizer, data = data, var.equal = TRUE)
-```
-
-**One-Way ANOVA Example:**
-```r
-# Compare 3 fertilizer types
-model <- aov(Yield ~ Treatment, data = data)
-summary(model)
-
-# If p < 0.05, treatments significantly different
-# Post-hoc test needed to identify which pairs differ
-```
-
-**Data Wrangling with dplyr:**
-```r
-library(dplyr)
-
-data %>%
-  filter(Region == "North") %>%
-  group_by(Treatment) %>%
-  summarise(
-    mean_yield = mean(Yield),
-    sd_yield = sd(Yield),
-    n = n(),
-    se_yield = sd_yield / sqrt(n)
-  ) %>%
-  arrange(desc(mean_yield))
-```
-
 ---
+
 
 ## 🗂️ Working with `agri_dataset.csv`
 
@@ -340,20 +111,7 @@ Sample agricultural dataset included:
 - Use for practicing all Week 1 concepts
 - ~10 observations (expandable for practice)
 
-```r
-# Load and explore
-data <- read.csv("agri_dataset.csv")
-head(data)
-summary(data)
 
-# Practice t-test
-t.test(Yield ~ Treatment, data = data)
-
-# Practice visualization
-ggplot(data, aes(x = Treatment, y = Yield)) +
-  geom_boxplot(fill = "lightblue") +
-  geom_jitter(width = 0.2)
-```
 
 ---
 
@@ -406,20 +164,6 @@ quarto::quarto_render("01_R basics.qmd")
 
 ---
 
-## 📋 Checklist: Master Week 1
-
-- [ ] Create and manipulate vectors
-- [ ] Understand data frames and subsetting
-- [ ] Write and run custom functions
-- [ ] Use if/else and loops correctly
-- [ ] Detect and handle missing data
-- [ ] Calculate descriptive statistics
-- [ ] Create visualizations with base R
-- [ ] Create visualizations with ggplot2
-- [ ] Conduct t-tests and ANOVA
-- [ ] Use dplyr for data manipulation
-
----
 
 ## 🔗 Required Packages
 
@@ -446,15 +190,6 @@ library(dplyr)
 
 ---
 
-## 📚 Additional Resources
-
-- **R for Data Science** by Hadley Wickham
-- [ggplot2 Documentation](https://ggplot2.tidyverse.org/)
-- [dplyr Cheat Sheet](https://dplyr.tidyverse.org/)
-- [R Graphics Cookbook](https://r-graphics.org/)
-- [Statistical Rethinking](https://xcelab.net/rethinking/) - Understanding statistics deeply
-
----
 
 ## ✅ What's Next?
 
