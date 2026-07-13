@@ -42,31 +42,7 @@ Yield = Grand Mean + Fertilizer Effect + Variety Effect + Interaction + Error
 
 ---
 
-## 🔍 Understanding Interactions
 
-### **No Interaction (Parallel Lines)**
-```
-Fertilizer A works better than B at all varieties
-        |
-        |  B
-        | /
-   Yield|/  A
-        |
-        |____Variety
-```
-
-### **Interaction (Non-Parallel Lines)**
-```
-Fertilizer A better for Variety 1, but B better for Variety 2
-        |
-        |    A (for Var 2)
-   Yield|   / \ 
-        |  /   \
-        | /      B (for Var 2)
-        |____Variety
-```
-
----
 
 ## 📈 Running Two-Way ANOVA
 
@@ -140,16 +116,6 @@ ggplot(summary, aes(x = Fertilizer, y = mean_yield, fill = Variety)) +
   theme_classic() +
   labs(title = "Mean Yield by Fertilizer and Variety",
        y = "Yield (kg/ha)", x = "Fertilizer")
-```
-
-### **Heatmap (For Many Combinations)**
-```r
-ggplot(summary, aes(x = Fertilizer, y = Variety, fill = mean_yield)) +
-  geom_tile() +
-  geom_text(aes(label = round(mean_yield, 1)), color = "white", size = 4) +
-  scale_fill_viridis_c() +
-  theme_minimal() +
-  labs(title = "Yield Across Treatment Combinations")
 ```
 
 ---
@@ -246,61 +212,6 @@ anova(model, type = 3)  # Get p-values
 
 # Random blocks nested in region
 model <- lmer(Yield ~ Fertilizer * Variety + (1|Region/Block), data = data)
-```
-
----
-
-## 📋 Complete Workflow
-
-### **Research Question:** 
-*Do fertilizer and variety independently affect yield, or is there an interaction?*
-
-```r
-library(dplyr)
-library(ggplot2)
-library(car)
-library(emmeans)
-library(multcompView)
-
-# 1. Load and explore
-data <- read.csv("agriculture_two_way_anova.csv")
-
-summary_table <- data %>%
-  group_by(Fertilizer, Variety) %>%
-  summarise(Mean = mean(Yield),
-            SD = sd(Yield),
-            n = n(),
-            .groups = 'drop')
-print(summary_table)
-
-# 2. Check assumptions
-model_temp <- aov(Yield ~ Fertilizer * Variety, data = data)
-shapiro.test(residuals(model_temp))
-leveneTest(Yield ~ Fertilizer * Variety, data = data)
-
-# 3. Run two-way ANOVA
-model <- aov(Yield ~ Fertilizer * Variety, data = data)
-summary(model)
-
-# 4. Visualize interaction
-ggplot(data, aes(x = Fertilizer, y = Yield, 
-                 color = Variety, group = Variety)) +
-  geom_line(stat = "summary", fun = mean, size = 1) +
-  geom_point(stat = "summary", fun = mean, size = 3) +
-  geom_jitter(width = 0.1, alpha = 0.3) +
-  theme_classic() +
-  labs(title = "Fertilizer × Variety Interaction",
-       y = "Yield (kg/ha)", x = "Fertilizer")
-
-# 5. Post-hoc tests
-emm <- emmeans(model, ~ Fertilizer * Variety)
-pairs(emm)  # All pairwise comparisons
-
-# 6. Simple effects if interaction significant
-if (summary(model)[[1]]["Pr(>F)"][3,1] < 0.05) {
-  emm_simple <- emmeans(model, ~ Fertilizer | Variety)
-  cld(emm_simple)
-}
 ```
 
 ---
