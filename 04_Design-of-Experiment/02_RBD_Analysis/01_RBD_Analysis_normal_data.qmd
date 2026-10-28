@@ -1,0 +1,366 @@
+---
+title: "RBD_Analysis"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 3
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Randomized Complete Block Design (RBD / RCBD)
+
+A **Randomized Complete Block Design (RBD)** is used when the
+experimental units are *not* homogeneous, but can be grouped into blocks
+of similar units (for example, along a fertility or moisture gradient in
+the field).
+
+Every treatment appears **once in every block**, and the treatments are
+randomized separately within each block.
+
+In this example, six fertilizer treatments are compared based on crop
+yield in five blocks.
+
+The experimental structure is:
+
+- **Experimental unit:** plot
+- **Treatment:** fertilizer treatment (6 levels)
+- **Block:** field block (5 blocks)
+- **Response variable:** yield (t/ha)
+- **Replications:** 5 (one plot per treatment in each block)
+- **Total plots:** 6 × 5 = 30
+- **Design:** RBD
+
+The main question is:
+
+> **Do the fertilizer treatments produce different mean yields, after
+> removing the variation between blocks?**
+
+------------------------------------------------------------------------
+
+## 1. Data
+
+### Load the data
+
+```{r}
+datarbd <- read.csv("rbd_normal_data.csv")
+
+head(datarbd)
+str(datarbd)
+```
+
+Check whether there are missing values:
+
+```{r}
+colSums(is.na(datarbd))
+```
+
+### Convert block and treatment to factors
+
+This step is important. If `block` is coded as 1, 2, 3, 4, 5, R will
+treat it as a number and fit a slope instead of a block effect.
+
+```{r}
+datarbd$block     <- as.factor(datarbd$block)
+datarbd$treatment <- as.factor(datarbd$treatment)
+
+str(datarbd)
+```
+
+### Quick look at the data
+
+```{r}
+boxplot(yield_t_ha ~ treatment, data = datarbd,
+        xlab = "Treatment", ylab = "Yield (t/ha)",
+        main = "Yield by treatment")
+
+boxplot(yield_t_ha ~ block, data = datarbd,
+        xlab = "Block", ylab = "Yield (t/ha)",
+        main = "Yield by block")
+```
+
+If the block means differ clearly, blocking was useful.
+
+------------------------------------------------------------------------
+
+## 2. Model Building
+
+The RBD model is:
+
+$$
+Y_{ij} = \mu + \tau_i + \beta_j + \epsilon_{ij}
+$$
+
+where:
+
+- $\tau_i$ = effect of treatment $i$
+- $\beta_j$ = effect of block $j$
+- $\epsilon_{ij}$ = random error
+
+There is **no treatment × block interaction** in this model. The model
+assumes that treatments behave the same way in every block (additivity).
+
+### Fit the ANOVA model
+
+```{r}
+modelrbd <- aov(
+  yield_t_ha ~ block + treatment,
+  data = datarbd
+)
+
+modelrbd
+```
+
+View the ANOVA table:
+
+```{r}
+summary(modelrbd)
+```
+
+
+At this point, we have **fitted the model**, but we should not interpret
+the treatment p-value yet. First, check the assumptions.
+
+------------------------------------------------------------------------
+
+## 3. Model Diagnostics
+
+For this model, the main assumptions are:
+
+1.  Independence of observations
+2.  Approximately normal residuals
+3.  Homogeneity of residual variance
+4.  **Additivity** (no block × treatment interaction)
+
+### 3.1 Diagnostic plots
+
+```{r}
+par(mfrow = c(2, 2))
+plot(modelrbd)
+par(mfrow = c(1, 1))
+```
+
+- **Residuals vs Fitted:** look for a random spread with no clear
+  pattern.
+- **Normal Q-Q:** points should approximately follow the reference line.
+- **Scale-Location:** helps assess homogeneity of variance.
+- **Residuals vs Leverage:** helps identify unusually influential
+  observations.
+
+### 3.2 Normality of residuals
+
+```{r}
+shapiro.test(residuals(modelrbd))
+```
+
+**Interpretation:**
+
+- **p \> 0.05:** no evidence against normality; the ANOVA is reliable.
+- **p \< 0.05:** residuals are not normal; reconsider the analysis.
+
+Do not rely on Shapiro-Wilk alone. With small samples it has low power,
+and with large samples it flags trivial departures. Always read it
+together with the Q-Q plot.
+
+### 3.3 Homogeneity of variance
+
+Levene's test across treatments:
+
+```{r}
+library(car)
+
+leveneTest(yield_t_ha ~ treatment, data = datarbd)
+```
+
+- **p > 0.05:** no strong evidence of unequal variances.
+- **p < 0.05:** evidence that treatment variances differ.
+
+With only 5 observations per treatment, this test has limited power, so
+the residuals vs fitted plot matters more.
+
+### 3.4 Additivity (no block × treatment interaction)
+
+The RBD has only one observation per treatment per block, so the
+interaction cannot be tested directly from the ANOVA table. A simple
+visual check is an interaction plot:
+
+```{r}
+interaction.plot(
+  x.factor = datarbd$treatment,
+  trace.factor = datarbd$block,
+  response = datarbd$yield_t_ha,
+  xlab = "Treatment", ylab = "Yield (t/ha)",
+  trace.label = "Block"
+)
+```
+
+**Interpretation:**
+
+- Roughly **parallel lines** → additivity is reasonable.
+- Lines that **cross strongly** → treatments respond differently in
+  different blocks, and the additive RBD model may be inadequate.
+
+### 3.5 Diagnostic decision
+
+**Decision:** The plots and tests show no serious violations, proceed with the RBD ANOVA.
+
+If the assumptions were seriously violated, reconsider the analysis
+rather than blindly interpreting the ANOVA. For a non-normal response in
+an RBD, the **Friedman test** is a non-parametric alternative.
+
+------------------------------------------------------------------------
+
+## 4. ANOVA Interpretation
+
+```{r}
+summary(modelrbd)
+```
+
+### Treatment effect
+
+- **Null hypothesis (H₀):** all treatment means are equal.
+- **Alternative hypothesis (H₁):** at least one treatment mean differs.
+
+Use the significance level:
+
+$$
+\alpha = 0.05
+$$
+
+Decision rule:
+
+- **p \< 0.05:** reject H₀.
+- **p ≥ 0.05:** fail to reject H₀.
+
+**Decision:** reject H₀ for treatment, As the p value is less than o.o5 means the treatment are significantly different.
+
+### Block effect
+
+The block also different. 
+It is **not** a hypothesis of primary interest, but it tells us whether blocking was worthwhile.
+
+### 4.1 Was blocking efficient?
+
+The **relative efficiency (RE)** compares the RBD with what a CRD would
+have given for the same data:
+
+$$
+RE = \frac{(b-1)MS_{Block} + b(t-1)MS_{Error}}{(bt-1)\,MS_{Error}}
+$$
+
+```{r}
+aov_tab <- summary(modelrbd)[[1]]
+
+MS_block <- aov_tab["block", "Mean Sq"]
+MS_error <- aov_tab["Residuals", "Mean Sq"]
+
+b <- nlevels(datarbd$block)
+t <- nlevels(datarbd$treatment)
+
+RE <- ((b - 1) * MS_block + b * (t - 1) * MS_error) / ((b * t - 1) * MS_error)
+RE
+```
+
+**Interpretation:**
+
+- **RE \> 1:** blocking improved precision. For example, RE = 1.5 means
+  a CRD would need about 50% more replications to reach the same
+  precision.
+- **RE ≈ 1 or less:** blocking did not help much.
+
+So hare the RBD increase the precision.
+
+ANOVA only says that a difference exists somewhere, so a post-hoc
+comparison is needed.
+
+------------------------------------------------------------------------
+
+## 5. Post-hoc Analysis
+
+Post-hoc analysis is performed when the treatment effect is significant
+and we want to know **which treatment means differ**.
+
+Here we use `emmeans` to obtain estimated marginal means (averaged over
+blocks) and compare treatments.
+
+### 5.1 LSD comparison
+
+LSD uses no multiplicity adjustment:
+
+```{r}
+library(emmeans)
+
+emm_rbd_lsd <- emmeans(modelrbd, pairwise ~ treatment, adjust = "none")
+emm_rbd_lsd
+```
+
+Compact letter display:
+
+```{r}
+library(multcomp)
+library(multcompView)
+
+multcomp::cld(emm_rbd_lsd$emmeans, adjust = "none", Letters = letters)
+```
+
+Treatments sharing the same letter are **not statistically different**.
+Treatments with different letters are statistically different.
+
+### 5.2 Tukey HSD comparison
+
+Tukey's method controls the family-wise error rate across all pairwise
+comparisons.
+
+```{r}
+emm_rbd_hsd <- emmeans(modelrbd, pairwise ~ treatment, adjust = "tukey")
+emm_rbd_hsd
+```
+
+Compact letter display:
+
+```{r}
+multcomp::cld(emm_rbd_hsd$emmeans, adjust = "tukey", Letters = letters)
+```
+
+### LSD vs Tukey
+
+- **LSD:** less conservative; more power, but higher Type I error risk
+  across many comparisons.
+- **Tukey:** more conservative; the safer default when all treatment
+  pairs are compared.
+
+------------------------------------------------------------------------
+
+## 6. Post-hoc Interpretation
+
+Tukey's test (α = 0.05) separated the treatments into four groups.
+
+``` text
+NPK_Organic > NPK = Compost = Urea (bc) > Organic > Control
+```
+
+- `NPK_Organic` (4.59 t/ha) was significantly higher than all other treatments.
+- `Control` (3.37 t/ha) was significantly lower than all other treatments.
+- `NPK`, `Compost`, and `Urea` were not significantly different from each other.
+- `Organic` was lower than `NPK` and `Compost`, but not different from `Urea`.
+
+
+
+
+
+
+------------------------------------------------------------------------
+
+
+## 7. Agricultural Interpretation
+
+`NPK_Organic` gave the highest yield (**4.59 t/ha**) and the Control the lowest (**3.37 t/ha**), a difference of about **1.22 t/ha**.
+
+`NPK_Organic` also out-yielded `NPK` alone by about 0.50 t/ha. Cost, fertilizer rate, and economic return should be considered before making a recommendation.
+
+Statistical significance alone does not mean that the top treatment is
+the best practical recommendation. Cost, fertilizer rate, economic
+return, and environmental effects should also be considered.
+

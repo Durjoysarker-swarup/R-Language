@@ -1,0 +1,305 @@
+---
+title: "RBD_Mixed_Model_Analysis"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 3
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Linear Mixed Model for a Randomized Block Design
+
+A **linear mixed model** separates what we want to compare from what we
+only want to account for:
+
+- **Fixed effect:** the exact levels we care about and want to compare.
+  Here, the **treatments**.
+- **Random effect:** levels that are a *sample* from a larger
+  population, which we do not care about individually. Here, the
+  **blocks**.
+
+The question changes from "how much higher is Block 4 than Block 3?" to
+"how much do blocks vary in general, and can that variation be removed
+so treatments are compared fairly?"
+
+------------------------------------------------------------------------
+
+## 1. When Do We Need a Mixed Model?
+
+| Situation | Method |
+|------------------------------------|------------------------------------|
+| Complete, balanced, normal data | Normal ANOVA (mixed model gives the same answer) |
+| **Missing plots or unbalanced data** | **Mixed model** |
+| Several random factors (blocks across locations or seasons) | **Mixed model** |
+| Repeated measurements on the same plot over time | **Mixed model** |
+| Clearly non-normal data, complete blocks | Friedman test |
+
+### Why missing values are the main reason
+
+Suppose a plot in Block 4 (a high-yielding block) is lost.
+
+- **Raw treatment mean:** that treatment's average falls only because
+  its plot was missing from a good block. The comparison is unfair.
+- **Mixed model:** it knows Block 4 is usually high, so it adjusts. The
+  estimated treatment mean is what the treatment would have yielded
+  across all blocks.
+
+In this file, the dataset has missing values, so the mixed model is the
+appropriate analysis.
+
+------------------------------------------------------------------------
+
+## 2. Data
+
+### Load the data
+
+```{r}
+datamm <- read.csv("rbd_mixed_model_missing_data.csv")
+
+head(datamm)
+```
+
+### Convert block and treatment to factors
+
+```{r}
+datamm$block     <- as.factor(datamm$block)
+datamm$treatment <- as.factor(datamm$treatment)
+```
+
+### Check the missing values
+
+```{r}
+colSums(is.na(datamm))
+
+# Which rows are missing?
+datamm[is.na(datamm$yield_t_ha), ]
+```
+
+
+
+
+### Keep only the observed plots
+
+The model ignores rows with a missing response. We remove them
+explicitly, so it is clear which data are used:
+
+```{r}
+datamm_obs <- na.omit(datamm)
+
+nrow(datamm)
+nrow(datamm_obs)
+```
+
+------------------------------------------------------------------------
+
+## 3. Why Raw Means Are Not Reliable Here
+
+Raw treatment means ignore which blocks the plots came from:
+
+```{r}
+tapply(datamm_obs$yield_t_ha, datamm_obs$treatment, mean)
+```
+
+We will compare these with the model-adjusted means in Section 7.
+
+------------------------------------------------------------------------
+
+## 4. Model Building
+
+The mixed model is:
+
+$$
+Y_{ij} = \mu + \tau_i + b_j + \epsilon_{ij}, \qquad
+b_j \sim N(0, \sigma_b^2), \quad \epsilon_{ij} \sim N(0, \sigma^2)
+$$
+
+
+In R, `(1 | block)` means "each block gets its own random intercept".
+
+```{r}
+library(lme4)
+library(lmerTest)
+
+model_mm <- lmer(
+  yield_t_ha ~ treatment + (1 | block),
+  data = datamm_obs
+)
+
+summary(model_mm)
+```
+
+How to read the output:
+
+- **Random effects:** the variance of `block` and the residual variance.
+- **Fixed effects:** treatment coefficients relative to the reference
+  treatment (the first level alphabetically).
+
+### Check for a singular fit
+
+```{r}
+isSingular(model_mm)
+```
+
+- **FALSE:** the model is fine.
+- **TRUE:** the block variance is estimated as essentially zero, meaning
+  blocks explained almost nothing. The treatment results are still
+  usable, blocking was not effective.
+
+------------------------------------------------------------------------
+
+## 5. Model Diagnostics
+
+The assumptions are:
+
+1.  Residuals are approximately normal.
+2.  Residual variance is constant.
+3.  Block random effects are approximately normal.
+4.  Observations are independent after accounting for block.
+
+### 5.1 Residuals vs fitted
+
+```{r}
+plot(model_mm)
+```
+
+Look for a random spread with no funnel or curve.
+
+### 5.2 Normality of residuals
+
+```{r}
+qqnorm(resid(model_mm))
+qqline(resid(model_mm))
+
+shapiro.test(resid(model_mm))
+```
+
+- **p \> 0.05:** no evidence against normality.
+- **p \< 0.05:** check the Q-Q plot. If the deviation is clear, try a
+  log transformation (`log(yield_t_ha)`) and refit.
+
+### 5.3 Homogeneity of variance
+
+```{r}
+library(car)
+
+leveneTest(resid(model_mm) ~ datamm_obs$treatment)
+```
+
+With so few observations per treatment, this test has low power, so the
+residuals vs fitted plot matters more.
+
+### 5.4 Normality of the block random effects
+
+```{r}
+re_block <- ranef(model_mm)$block[, 1]
+
+qqnorm(re_block, main = "Q-Q plot of block random effects")
+qqline(re_block)
+```
+
+With only a few blocks, this is only a rough check.
+
+### 5.5 Diagnostic decision
+
+**Decision:** There are no serious violations, proceed with the mixed model results.
+
+------------------------------------------------------------------------
+
+## 6. Mixed Model ANOVA
+
+```{r}
+anova(model_mm)
+```
+
+
+- **Null hypothesis (H₀):** all treatment means are equal.
+- **Alternative hypothesis (H₁):** at least one treatment mean differs.
+- **Significance level:** α = 0.05
+
+**Decision:** reject H₀
+
+### How much variation is due to blocks?
+
+```{r}
+vc <- as.data.frame(VarCorr(model_mm))
+vc
+
+var_block <- vc$vcov[vc$grp == "block"]
+var_resid <- vc$vcov[vc$grp == "Residual"]
+
+# Intraclass correlation (ICC)
+var_block / (var_block + var_resid)
+```
+
+The proportion is the **intraclass correlation (ICC)**. A large value
+means plots in the same block are similar, so blocking was effective. A
+value near 0 means blocking removed little variation.
+
+------------------------------------------------------------------------
+
+## 7. Adjusted Means and Post-hoc Analysis
+
+`emmeans` gives **estimated marginal means**, which are the
+model-adjusted treatment means (corrected for the missing plots).
+
+```{r}
+library(emmeans)
+
+emm_mm <- emmeans(model_mm, pairwise ~ treatment, adjust = "tukey")
+emm_mm
+```
+
+### Compact letter display
+
+```{r}
+library(multcomp)
+library(multcompView)
+
+multcomp::cld(emm_mm$emmeans, adjust = "tukey", Letters = letters)
+```
+
+Treatments sharing the same letter are **not statistically different**.
+
+### Raw means vs adjusted means
+
+```{r}
+raw_means <- tapply(datamm_obs$yield_t_ha, datamm_obs$treatment, mean)
+adj_means <- summary(emm_mm$emmeans)
+
+data.frame(
+  treatment = adj_means$treatment,
+  raw_mean = as.numeric(raw_means[as.character(adj_means$treatment)]),
+  adjusted_mean = adj_means$emmean
+)
+```
+
+Treatments that lost a plot from a high or low block will show the
+biggest difference between the two columns. The adjusted mean is the
+fairer one to report.
+
+------------------------------------------------------------------------
+
+## 8. Post-hoc Interpretation
+
+> *(Write after running: give the ranking by adjusted mean and state
+> which treatments differ at α = 0.05.)*
+
+``` text
+Treatment_A > Treatment_B > ... > Treatment_F
+```
+
+------------------------------------------------------------------------
+
+## 9. Agricultural Interpretation
+
+> *(Write after running: highest and lowest treatments, their adjusted
+> means in t/ha, and the size of the difference.)*
+
+Cost, fertilizer rate, economic return, and environmental effects should
+also be considered before making a recommendation.
+
+Report that the **mixed model was used because of missing plots**, so
+treatment means are adjusted for block differences.

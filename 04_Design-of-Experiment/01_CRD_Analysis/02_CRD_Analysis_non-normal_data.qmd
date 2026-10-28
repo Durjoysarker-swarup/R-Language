@@ -1,0 +1,126 @@
+---
+title: "02_CRD_Analysis_non-normal_data"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 3
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# CRD: Non-normal Data
+
+## 1. Load Data
+
+```{r}
+datacrd_non <- read.csv("crd_non_normal_data.csv")
+
+head(datacrd_non)
+```
+
+---
+
+## 2. Model Building
+
+Initially, fit the same one-way ANOVA model used for the CRD.
+
+```{r}
+modelcrd_non <- aov(
+  yield_t_ha ~ treatment,
+  data = datacrd_non
+)
+
+summary(modelcrd_non)
+```
+
+The ANOVA model is fitted initially so that its residuals can be diagnosed.
+
+---
+
+## 3. Model Diagnostics
+
+Check the residuals to determine whether the ANOVA assumptions are reasonably satisfied.
+
+```{r}
+par(mfrow = c(2, 2))
+plot(modelcrd_non)
+par(mfrow = c(1, 1))
+```
+
+Check residual normality:
+
+```{r}
+shapiro.test(residuals(modelcrd_non))
+```
+
+The diagnostic results indicate that the residuals do not reasonably satisfy the normality assumption.
+
+Therefore, the ANOVA model is not appropriate for the primary analysis.
+
+> **Decision:** Use the Kruskal-Wallis test as the non-parametric alternative for this CRD.
+
+---
+
+## 4. Kruskal-Wallis Test
+
+```{r}
+kruskal.test(
+  yield_t_ha ~ treatment,
+  data = datacrd_non
+)
+```
+
+### Interpretation
+
+* **H₀:** The treatment groups have the same distribution.
+* **H₁:** At least one treatment group differs.
+
+If **p < 0.05**, reject H₀ and conclude that there is evidence of a difference among the treatment groups.
+
+If the test is significant, a post-hoc test is required to determine which groups differ.
+
+---
+
+## 5. Dunn's Post-hoc Test
+
+```{r}
+library(FSA)
+
+dunn_result = dunnTest(
+  yield_t_ha ~ treatment,
+  data = datacrd_non,
+  method = "bonferroni"
+)
+dunn_result
+```
+
+The Bonferroni-adjusted p-values are used to determine which treatment pairs differ significantly.
+
+* **Adjusted p < 0.05:** significant difference
+* **Adjusted p ≥ 0.05:** no statistically significant difference detected
+
+The final interpretation should identify **which treatments differ**, rather than simply reporting that the Kruskal-Wallis test was significant.
+
+---
+## 6. Treatment Grouping
+
+Use the adjusted p-values to create letter groups:
+```{r}
+library(multcompView)
+
+p_values <- dunn_result$res$P.adj
+
+names(p_values) <- gsub(
+  " - ", "-",
+  dunn_result$res$Comparison
+)
+
+letters <- multcompLetters(p_values)
+
+letters$Letters
+```
+Treatments sharing the same letter are not significantly different; treatments with different letters are significantly different at the chosen significance level.
+
+

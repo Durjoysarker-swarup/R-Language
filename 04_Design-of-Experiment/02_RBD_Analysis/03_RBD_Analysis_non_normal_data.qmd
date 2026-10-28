@@ -1,0 +1,162 @@
+---
+title: "03_RBD_Analysis_non_normal_data"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 3
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Friedman Test for a Randomized Block Design (Non-normal Data)
+
+The **Friedman test** is the non-parametric alternative to the RBD
+ANOVA. It is used when the data are **not normal** and a transformation
+does not fix the problem.
+
+Instead of using the raw values, it **ranks the treatments within each
+block** and then asks whether some treatments are consistently ranked
+higher than others across blocks.
+
+The experimental structure is the same as a normal RBD:
+
+- **Experimental unit:** plot
+- **Treatment:** treatment (fixed)
+- **Block:** field block
+- **Response variable:** yield (t/ha)
+- **Design:** RBD (every treatment once in every block)
+
+------------------------------------------------------------------------
+
+## 1. When Do We Use the Friedman Test?
+
+| Situation | Method |
+|------------------------------------|------------------------------------|
+| Complete RBD, residuals normal | Normal ANOVA |
+| Complete RBD, **residuals clearly non-normal** (even after log transformation) | **Friedman test** |
+| Missing plots | Mixed model (Friedman drops incomplete blocks) |
+| Counts or proportions | Generalized linear (mixed) model |
+
+### Requirements
+
+- **Complete blocks:** every treatment appears exactly once in every
+  block. Missing plots break the test.
+- **Independent blocks.**
+- Treatments can be ranked within each block (ordinal or continuous
+  data).
+
+------------------------------------------------------------------------
+
+
+## 1. Data
+
+```{r}
+datarbd <- read.csv("rbd_nonnormal_data.csv")
+
+head(datarbd)
+```
+
+Convert block and treatment to factors:
+
+```{r}
+datarbd$block     <- as.factor(datarbd$block)
+datarbd$treatment <- as.factor(datarbd$treatment)
+
+str(datarbd)
+```
+
+Check missing values and that every treatment appears once in every
+block:
+
+```{r}
+colSums(is.na(datarbd))
+```
+
+------------------------------------------------------------------------
+
+## 2. Model Building
+
+```{r}
+mdlrbd <- aov(yield_t_ha ~ treatment + block, data = datarbd)
+
+summary(mdlrbd)
+```
+
+Do not interpret this table yet. First check the assumptions.
+
+------------------------------------------------------------------------
+
+## 3. Diagnostics
+
+### 3.1 Diagnostic plots
+
+```{r}
+par(mfrow = c(2, 2))
+plot(mdlrbd)
+par(mfrow = c(1, 1))
+```
+
+### 3.2 Normality test (Shapiro-Wilk)
+
+```{r}
+shapiro.test(residuals(mdlrbd))
+```
+
+- **p \> 0.05:** residuals are normal. 
+- **p \< 0.05:** residuals are not normal.
+
+Also look at the Q-Q plot. Points should follow the line:
+
+```{r}
+qqnorm(residuals(mdlrbd))
+qqline(residuals(mdlrbd))
+```
+
+### 3.3 Homogeneity of variance (Levene test)
+
+```{r}
+library(car)
+
+leveneTest(yield_t_ha ~ treatment, data = datarbd)
+```
+
+- **p \> 0.05:** variances are equal. 
+- **p \< 0.05:** variances are not equal.
+
+### 3.4 Decision
+
+the normality and Levene p-values, and whether the assumptions failed.
+
+- **Both tests pass:** use the normal RBD ANOVA from Section 2.
+- **Either test fails:** use the Friedman test in Section 4.
+
+------------------------------------------------------------------------
+
+## 4. Friedman Test
+
+The Friedman test is the non-parametric alternative for RBD. It ranks
+the treatments **within each block** and checks whether some treatments
+are consistently ranked higher. Because it uses ranks, it does not need
+normal data.
+
+It requires **complete blocks** (every treatment once in every block).
+
+```{r}
+friedman.test(yield_t_ha ~ treatment | block, data = datarbd)
+```
+
+- **Null hypothesis (H₀):** all treatments are the same.
+- **Alternative hypothesis (H₁):** at least one treatment differs.
+- **p \< 0.05:** reject H₀.
+- **p ≥ 0.05:** fail to reject H₀.
+
+
+as the value is less than 0.05 so it reject the H₀
+Since the test is rank-based, summarise the data with **medians**:
+
+```{r}
+tapply(datarbd$yield_t_ha, datarbd$treatment, median)
+```
+

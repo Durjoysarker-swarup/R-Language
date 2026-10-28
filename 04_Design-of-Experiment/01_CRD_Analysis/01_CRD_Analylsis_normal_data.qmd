@@ -1,0 +1,326 @@
+---
+title: "CRD_Analylsis"
+author: "Durjoy Sarker"
+format:
+  pdf:
+    toc: TRUE
+    toc-depth: 3
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Completely Randomized Design (CRD)
+
+A **Completely Randomized Design (CRD)** is used when experimental units
+are reasonably homogeneous and treatments can be assigned completely at
+random.
+
+In this example, different fertilizer treatments are compared based on
+crop yield.
+
+The experimental structure is:
+
+- **Experimental unit:** plot
+- **Treatment:** fertilizer treatment
+- **Response variable:** yield (t/ha)
+- **Replications:** 10 plots per treatment
+- **Design:** CRD
+- **Block:** None
+
+The main question is:
+
+> **Do the fertilizer treatments produce different mean yields?**
+
+------------------------------------------------------------------------
+
+## 1. Data
+
+### Load the data
+
+```{r}
+datacrd <- read.csv("crd_normal_data.csv")
+
+head(datacrd)
+```
+
+Check whether there are missing values:
+
+```{r}
+colSums(is.na(datacrd))
+```
+
+------------------------------------------------------------------------
+
+## 2. Model Building
+
+Because this is a CRD, the basic one-way ANOVA model contains only the
+treatment effect:
+
+$$
+Y_{ij} = \mu + \tau_i + \epsilon_{ij}
+$$
+
+### Fit the ANOVA model
+
+```{r}
+modelcrd <- aov(
+  yield_t_ha ~ treatment,
+  data = datacrd
+)
+
+modelcrd
+```
+
+View the ANOVA table:
+
+```{r}
+summary(modelcrd)
+```
+
+At this point, we have **fitted the model**, but we should not interpret
+the ANOVA p-value yet.
+
+First, we need to check whether the assumptions of the model are
+reasonably satisfied.
+
+## 3. Model Diagnostics
+
+Before interpreting the ANOVA result, we need to check whether the model
+assumptions are reasonably satisfied.
+
+For this model, the main assumptions are:
+
+1.  Independence of observations
+2.  Approximately normal residuals
+3.  Homogeneity of residual variance
+
+### 3.1 Diagnostic plots
+
+The standard diagnostic plots can be obtained from the fitted model.
+
+```{r}
+plot(modelcrd)
+```
+
+The most important plots for this analysis are:
+
+- **Residuals vs Fitted:** checks whether residual spread is reasonably
+  constant and whether there is a systematic pattern.Look for the random
+  spread(no clear pattern)
+- **Normal Q-Q:** checks whether residuals approximately follow a normal
+  distribution. If the points approximately follow the reference line,
+  the residual distribution is reasonably close to normal.
+- **Scale-Location:** helps assess homogeneity of variance.
+- **Residuals vs Leverage:** helps identify observations that may have
+  unusually strong influence.
+
+### 3.2 Normality of residuals
+
+The Q-Q plot is the primary visual check. If the points approximately
+follow the reference line, the residual distribution is reasonably close
+to normal.
+
+A formal Shapiro-Wilk test can also be used:
+
+```{r}
+shapiro.test(residuals(modelcrd))
+```
+
+**Interpretation:**
+
+- p value is more than 0.05 the residuals are normally distributed, can
+  perform the one way ANOVA.
+
+- p value is less than 0.05 the residuals are not normally distributed,
+  performing one way ANOVA isn't reliable.
+
+The Shapiro-Wilk test should not be used alone. With larger samples,
+small departures from normality can become statistically significant
+even when the ANOVA is reasonably robust.
+
+Therefore, the **Q-Q plot and the practical size of the deviation**
+should also be considered.
+
+### 3.3 Homogeneity of variance
+
+A useful formal test is Levene's test.
+
+```{r}
+library(car)
+
+leveneTest(yield_t_ha ~ treatment, data = datacrd)
+
+```
+
+Interpretation:
+
+- **p \> 0.05:** no strong evidence of unequal variances.
+- **p \< 0.05:** evidence that the treatment variances differ.
+
+Again, the test should be considered together with the diagnostic plots.
+
+### 3.4 Diagnostic decision
+
+For this dataset, the residual diagnostics indicate that the assumptions
+are reasonably satisfied.
+
+Therefore:
+
+> **Decision:** Proceed with the one-way ANOVA model.
+
+If the assumptions were seriously violated, we would reconsider the
+analysis rather than blindly interpreting the ANOVA result. For a CRD
+with a non-normal response, a non-parametric alternative such as the
+**Kruskal-Wallis test** may be considered.
+
+------------------------------------------------------------------------
+
+## 4. ANOVA Interpretation
+
+Once the model assumptions are reasonably satisfied, we can interpret
+the ANOVA table.
+
+```{r}
+summary(modelcrd)
+```
+
+The hypotheses are:
+
+- **Null hypothesis (H₀):** all treatment means are equal.
+- **Alternative hypothesis (H₁):** at least one treatment mean differs
+  from another.
+
+The ANOVA table provides an **F-statistic** and a **p-value** for the
+treatment effect.
+
+### Statistical decision
+
+Use the significance level:
+
+$$
+\alpha = 0.05
+$$
+
+Decision rule:
+
+- **p \< 0.05:** reject H₀.
+- **p ≥ 0.05:** fail to reject H₀.
+
+For this dataset, the treatment effect is statistically significant.
+
+Therefore:
+
+> **Decision:** Reject H₀. There is evidence that mean yield is not the
+> same across all fertilizer treatments.
+
+However, ANOVA does **not** tell us which specific treatments differ.
+
+It only tells us that there is evidence of a difference somewhere among
+the treatment means.
+
+Therefore, a post-hoc comparison is required.
+
+------------------------------------------------------------------------
+
+## 5. Post-hoc Analysis
+
+Post-hoc analysis is performed when the overall ANOVA indicates a
+statistically significant treatment effect and we want to determine
+**which treatment means differ**.
+
+Here we use `emmeans` to obtain estimated marginal means and compare
+treatments.
+
+### 5.1 LSD comparison
+
+For an LSD-style comparison, we can use no multiplicity adjustment:
+
+```{r}
+library(emmeans) 
+emm_crd_lsd = emmeans(modelcrd,pairwise~treatment, adjust="none") 
+emm_crd_lsd
+```
+
+A compact letter display can be produced using `multcomp`:
+
+```{r}
+
+library(multcomp) 
+library(multcompView)
+
+multcomp::cld( emm_crd_lsd, adjust = "none", Letters = letters )
+
+```
+
+Treatments sharing the same letter are **not statistically different**
+under the selected comparison procedure.
+
+Treatments with different letters are statistically different.
+
+### 5.2 Tukey HSD comparison
+
+Tukey's method controls the family-wise error rate when making multiple
+pairwise comparisons.
+
+```{r}
+library(emmeans) 
+emm_crd_hsd = emmeans(modelcrd,pairwise~treatment, adjust="tukey") 
+emm_crd_hsd
+```
+
+Compact letter display:
+
+```{r}
+
+multcomp::cld( emm_crd_hsd, adjust = "sidak", Letters = letters ) 
+```
+
+### LSD vs Tukey
+
+The two approaches answer the same general question—**which treatment
+means differ?**—but they control multiple comparisons differently.
+
+- **LSD:** less conservative; greater chance of detecting differences
+  but greater risk of Type I error across many comparisons.
+- **Tukey:** more conservative and appropriate when making all pairwise
+  treatment comparisons.
+
+For a general-purpose research analysis, **Tukey-adjusted comparisons
+are usually the safer default** when all treatment pairs are being
+compared.
+
+The post-hoc results will be used in the next section to determine
+**which treatments differ and how those differences should be
+interpreted agriculturally**.
+
+## 6. Post-hoc Interpretation
+
+Tukey's test shows that **all treatment pairs are significantly
+different** at α = 0.05.
+
+The treatment ranking based on estimated mean yield is:
+
+``` text
+NPK_Organic > NPK > Compost > Urea > Organic > Control
+```
+
+The compact letter display confirms this because each treatment has a
+different letter.
+
+Therefore, `NPK_Organic` produced the highest yield and was
+significantly higher than all other treatments.
+
+------------------------------------------------------------------------
+
+## 7. Agricultural Interpretation
+
+`NPK_Organic` produced the highest estimated yield (**4.57 t/ha**),
+while the Control produced the lowest (**3.46 t/ha**).
+
+The difference was approximately **1.11 t/ha** and was statistically
+significant.
+
+However, statistical significance alone does not mean that `NPK_Organic`
+is the best practical recommendation. Cost, fertilizer rate, economic
+return, and environmental effects should also be considered.
