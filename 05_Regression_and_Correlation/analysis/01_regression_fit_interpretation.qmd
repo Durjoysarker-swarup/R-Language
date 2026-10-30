@@ -1,0 +1,311 @@
+---
+title: "Regression: Model Fit and Interpretation"
+subtitle: "Week 3, Day 1 and Day 2"
+author: "Durjoy Kumar Sarker"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# What is Regression?
+
+Regression is a statistical method to **model and analyze the relationship** between:
+
+- a **dependent variable** (response), here `yield`
+- one or more **independent variables** (predictors), here `nitrogen` and `rainfall`
+
+**Intuition:** we draw the "best" line (or plane) through the data, so we can say *how much yield changes when nitrogen or rainfall changes*, and *predict yield* for new fields.
+
+Units used in this file: yield and soil nitrogen in **kg/ha**, rainfall in **mm**.
+
+```{r}
+library(ggplot2)
+library(knitr)
+```
+
+# 1. Building the Models
+
+## Read the data
+
+```{r}
+data <- read.csv("../data/raw/agriculture_yield_data.csv")
+head(data) 
+```
+
+## Fit two models
+
+```{r}
+# Model 1: one predictor
+model  <- lm(yield ~ nitrogen, data = data)
+
+# Model 2: two predictors
+model2 <- lm(yield ~ nitrogen + rainfall, data = data)
+```
+
+- `model` asks: *can nitrogen alone predict yield?*
+- `model2` asks: *does adding rainfall help?*
+
+## Model summary
+
+```{r}
+summary(model)
+```
+
+```{r}
+summary(model2)
+```
+
+```{r}
+s <- summary(model2)
+```
+
+# Reading summary(model2)
+
+The model:
+
+```         
+lm(formula = yield ~ nitrogen + rainfall, data = data)
+```
+
+It tries to predict crop yield using two predictors: nitrogen and rainfall.
+
+## Coefficients table
+
+| Term | Estimate | Std. Error | t value | p value | Meaning |
+|------------|------------|------------|------------|------------|------------|
+| Intercept | -0.40266 | 2.13631 | -0.188 | 0.856 | When nitrogen = 0 and rainfall = 0, predicted yield = -0.40266 kg/ha. This is not realistic (used for calculation only), and not statistically significant. |
+| Nitrogen | 0.03798 | 0.03495 | 1.087 | 0.313 | For every 1 unit increase in nitrogen, yield increases by 0.03798 kg/ha (not statistically significant). |
+| Rainfall | 0.01902 | 0.02085 | 0.912 | 0.392 | For every 1 mm increase in rainfall, yield increases by 0.01902 kg/ha (not statistically significant). |
+
+**How to interpret p-values:**
+
+- p \< 0.05: statistically significant (important)
+- p \>= 0.05: not significant on its own
+
+If none of the variables is significant individually but the model is strong overall, the predictors probably **overlap** (they carry similar information). This is why 03 studies correlation and multicollinearity.
+
+## Residuals
+
+Residual = actual yield - predicted yield. It is how far each prediction is from the truth.
+
+```{r}
+res <- residuals(model2)
+round(quantile(res), 4)
+```
+
+- Smaller values = better prediction
+- Symmetric and small spread (median near 0) = good sign, no major outliers
+
+## Residual standard error (RSE)
+
+```{r}
+rse <- s$sigma
+round(rse, 4)
+```
+
+- The typical distance between actual and predicted yield, **in yield units**
+- Lower = better
+- Compare it with the average yield to judge if it is small:
+
+```{r}
+round(rse / mean(data$yield) * 100, 1)
+```
+
+The number above is RSE as a percentage of mean yield.
+
+## Multiple R-squared
+
+```{r}
+round(s$r.squared, 4)
+```
+
+- Share of yield variation explained by nitrogen + rainfall
+- Close to 1 = strong fit
+- Warning: R² goes up even when you add **useless** variables
+
+## Adjusted R-squared
+
+```{r}
+round(s$adj.r.squared, 4)
+```
+
+- R² adjusted for the number of variables
+- Better than R² when comparing models with different numbers of predictors
+- If adjusted R² is still high, the fit is realistic, not just inflated by extra variables
+
+## F-statistic
+
+```{r}
+fs   <- s$fstatistic
+f_p  <- pf(fs[1], fs[2], fs[3], lower.tail = FALSE)
+c(F = unname(fs[1]), df1 = unname(fs[2]), df2 = unname(fs[3]), p_value = unname(f_p))
+```
+
+- Tests: *do nitrogen and rainfall together explain yield variation?*
+- High F and small p (\< 0.001) = the model is significant overall
+- A model can be significant overall even if individual variables are not (overlapping predictors)
+
+## Final evaluation (what is good?)
+
+```{r}
+eval_tbl <- data.frame(
+  Metric = c("R-squared", "Adjusted R-squared", "Residual std. error",
+             "F-statistic p-value", "Variable p-values"),
+  Value = c(round(s$r.squared, 4),
+            round(s$adj.r.squared, 4),
+            round(rse, 4),
+            signif(f_p, 3),
+            paste(round(coef(s)[-1, 4], 3), collapse = ", ")),
+  Verdict = c(ifelse(s$r.squared > 0.7, "Strong fit", "Weak or moderate fit"),
+              ifelse(s$adj.r.squared > 0.7, "Realistic fit", "Weak or moderate fit"),
+              "Small relative to yield = good",
+              ifelse(f_p < 0.05, "Very significant", "Not significant"),
+              ifelse(all(coef(s)[-1, 4] < 0.05), "All significant",
+                     "Not all significant alone"))
+)
+kable(eval_tbl)
+```
+
+# How R-squared Relates to Prediction
+
+## Actual, predicted and mean
+
+- **Actual** = the real observed value you measured. Example: a field gave 3.5 t, so actual yield = 3.5.
+- **Predicted** = what the model estimated from nitrogen, rainfall, etc. Example: the model said 3.2 t.
+- **Mean** = average of all actual yields (add all, divide by the number of observations). It is the "center" of the yield values.
+
+```{r}
+actual    <- data$yield
+predicted <- fitted(model2)
+m         <- mean(actual)
+
+head(data.frame(actual = actual, predicted = round(predicted, 3),
+                residual = round(actual - predicted, 3)))
+```
+
+## Three types of variation
+
+| Type | Formula | Meaning |
+|------------------------|------------------------|------------------------|
+| Total variation | SST = sum(Actual - Mean)\^2 | how much yield varies overall |
+| Explained variation | SSR = sum(Predicted - Mean)\^2 | how much the model explains |
+| Unexplained variation | SSE = sum(Actual - Predicted)\^2 | error left by the model |
+
+**Intuition:** SST is the total "spread" of yield. The model splits it into a part it can explain (SSR) and a part it cannot (SSE). So SST = SSR + SSE.
+
+```{r}
+SST <- sum((actual - m)^2)
+SSR <- sum((predicted - m)^2)
+SSE <- sum((actual - predicted)^2)
+
+kable(data.frame(Measure = c("SST", "SSR", "SSE", "SSR + SSE"),
+                 Value = round(c(SST, SSR, SSE, SSR + SSE), 4)))
+```
+
+## How R-squared is calculated
+
+R² = Explained variation / Total variation = SSR / SST
+
+```{r}
+R2_manual <- SSR / SST
+c(manual = R2_manual, from_summary = s$r.squared)
+```
+
+The two values match. So:
+
+- R² = `r round(R2_manual, 2)` means `r round(R2_manual * 100, 1)`% of the total variation in yield is explained by nitrogen and rainfall.
+- The remaining `r round((1 - R2_manual) * 100, 1)`% is error (unexplained).
+
+## R-squared is not "accuracy"
+
+R² = 0.95 means the model **explains** 95% of the yield variation in this data. It does **not** mean the model is "95% accurate", and it does not guarantee future prediction accuracy if important factors are missing.
+
+# Overfitting
+
+- Happens when the model uses **too many variables**, including ones that are not really important.
+- It performs well on the current data but poorly on new data (it learns the noise, not the pattern).
+
+**Why R² alone can be misleading:** a high R² could mean overfitting. That is why **adjusted R²** is preferred: it goes down when unnecessary variables are added.
+
+Read it like this:
+
+- R² never goes down when a variable is added, even a useless one.
+- Adjusted R² drops (or barely rises) for a useless variable. Trust adjusted R² when comparing models.
+
+# What if Other Important Factors are Missing?
+
+- Example: **irrigation** may be important but is not in the model.
+- The model then assumes conditions like irrigation are **constant or optimal**.
+- If that is not true, predictions may be **biased**.
+
+So a good R² only speaks for the variables you included. Always ask: *what else affects yield that I did not measure?*
+
+# 2. Visualizing the Relationship
+
+A plot shows what `summary()` numbers cannot: the **shape** of the relationship.
+
+```{r}
+data2 <- read.csv("../data/raw/yield_soil_data.csv")
+head(data2)
+```
+
+## Nitrogen vs yield
+
+```{r}
+#| fig-height: 3.5
+ggplot(data2, aes(nitrogen, yield)) +
+  geom_point(color = "blue", size = 3) +
+  geom_smooth(method = "lm", se = TRUE, color = "red") +
+  labs(title = "Nitrogen vs Yield", x = "Soil Nitrogen", y = "Yield") +
+  theme_minimal()
+```
+
+How to read it:
+
+- **Linear trend?** If points follow a straight-line pattern, the relationship is linear.
+- **Increasing yield?** If the line goes up, more nitrogen = higher yield.
+- **Good fit?** If most points are close to the red line, the fit is strong.
+
+```{r}
+cor_n <- cor(data2$nitrogen, data2$yield)
+round(cor_n, 3)
+```
+
+The correlation above puts a number on the same idea: closer to +1 means a tighter upward line.
+
+## Rainfall vs yield
+
+```{r}
+#| fig-height: 3.5
+ggplot(data2, aes(rainfall, yield)) +
+  geom_point(color = "green", size = 3) +
+  geom_smooth(method = "lm", se = TRUE, color = "darkgreen") +
+  labs(title = "Rainfall vs Yield", x = "Rainfall (mm)", y = "Yield") +
+  theme_minimal()
+```
+
+How to read it:
+
+- You can see whether yield increases with rainfall.
+- If the line is **flat**, rainfall might not impact yield much. If the line is **steep**, rainfall has a stronger effect.
+- `se = TRUE` draws the **shaded area**: the uncertainty of the line. A narrow band means a confident line; a wide band means less certainty (usually at the ends where there is less data).
+
+```{r}
+cor_r <- cor(data2$rainfall, data2$yield)
+round(cor_r, 3)
+```
+
+# Key Takeaways
+
+1.  Regression models a response (yield) from predictors (nitrogen, rainfall).
+2.  In `summary()`: **coefficients** give effects, **p-values** give importance, **RSE** gives typical error, **R² / adjusted R²** give fit, **F-test** gives overall significance.
+3.  R² = SSR / SST, the share of variation explained. It is not "accuracy".
+4.  A high R² can hide overfitting; use **adjusted R²** to compare models.
+5.  Missing factors (like irrigation) can bias predictions.
+6.  Always **plot** the data: the line and shaded band show trend, strength and uncertainty at a glance.

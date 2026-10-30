@@ -4,7 +4,7 @@ This folder contains the statistics learning materials used in the `R-Language` 
 
 ## Folder structure
 
-```text
+``` text
 03_Statistic-Note/
 ├── README.md
 ├── notes/
@@ -40,14 +40,14 @@ This folder contains the statistics learning materials used in the `R-Language` 
 
 ## How to use this folder
 
-1. Read the theory in the `notes/` files first.
-2. Practice with the corresponding `practicals/` files.
-3. Use the learned concepts while working with agricultural and experimental data in the repository.
+1.  Read the theory in the `notes/` files first.
+2.  Practice with the corresponding `practicals/` files.
+3.  Use the learned concepts while working with agricultural and experimental data in the repository.
 
 ## Relation to the repo
 
 This folder is the statistical foundation for the later experimental design work in `04_Design-of-Experiment`. Together, these folders help build a complete workflow for data analysis and agricultural statistics in R.
 
----
+------------------------------------------------------------------------
 
 This folder is part of the `R-Language` learning repository.
