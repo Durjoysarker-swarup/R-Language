@@ -1,6 +1,5 @@
 ---
 title: "Regression: Model Fit and Interpretation"
-subtitle: "Week 3, Day 1 and Day 2"
 author: "Durjoy Kumar Sarker"
 format:
   pdf:

@@ -1,0 +1,386 @@
+---
+title: "Managing Multicollinearity"
+subtitle: "Remove or Combine, PCA, Ridge Regression"
+author: "Durjoy Kumar Sarker"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Why This File?
+
+File 02 showed how to **detect** multicollinearity (high correlation between predictors, high VIF). This file shows how to **manage** it.
+
+If I have high multicollinearity, the options are:
+
+1.  **Collect more data**
+2.  **Remove one variable** (or combine variables into one)
+3.  **PCA** (Principal Component Analysis)
+4.  **Ridge regression**
+
+```{r}
+library(car)
+library(glmnet)
+library(knitr)
+```
+
+# Data
+
+```{r}
+data <- read.csv("../data/raw/high_correlation_agriculture.csv")
+head(data)
+```
+
+## The problem (recap)
+
+```{r}
+model_full <- lm(yield ~ nitrogen + rainfall, data = data)
+summary(model_full)
+vif(model_full)
+```
+
+High VIF means nitrogen and rainfall carry **overlapping information**. Now we fix it.
+
+# Fix 1: Collect More Data
+
+- More observations give the model more chances to separate the effect of one predictor from the other.
+- It reduces the standard errors, but it does not remove the overlap itself.
+- It is the best fix when it is possible, but in practice it is often not (cost, time, one season only).
+
+So we move to fixes we can apply to the data we already have.
+
+# Fix 2: Remove One Variable
+
+**Intuition:** if two predictors say the same thing, keep one.
+
+```{r}
+model1 <- lm(yield ~ nitrogen, data = data)
+summary(model1)
+```
+
+Compare with the two-variable model:
+
+```{r}
+cmp <- data.frame(
+  Model = c("nitrogen + rainfall", "nitrogen only"),
+  R2 = c(summary(model_full)$r.squared, summary(model1)$r.squared),
+  Adj_R2 = c(summary(model_full)$adj.r.squared, summary(model1)$adj.r.squared),
+  AIC = c(AIC(model_full), AIC(model1))
+)
+kable(cbind(cmp[1], round(cmp[-1], 4)))
+```
+
+Read it like this:
+
+- If R² and adjusted R² barely change after removing a variable, that variable was **redundant**.
+- Now the remaining predictor can show its real effect (smaller standard error).
+- Downside: you lose the ability to say anything about the removed variable.
+
+# Fix 2b: Combine Variables into One
+
+```{r}
+data$combined <- (data$nitrogen + data$rainfall) / 2
+model2 <- lm(yield ~ combined, data = data)
+summary(model2)
+```
+
+**Intuition:** instead of two overlapping variables, build **one** summary variable (here, their average).
+
+**Caution:** nitrogen is in kg/ha and rainfall is in mm, so they are on different scales. A plain average lets the larger-valued variable dominate. This is exactly the problem that **standardizing** fixes in PCA, which is the next fix.
+
+# Fix 3: PCA (Principal Component Analysis)
+
+## Intuition first
+
+- Nitrogen and rainfall move together, so they are really **one story told twice**.
+- PCA builds **new variables (principal components)** that are **uncorrelated** with each other.
+- **PC1** captures the biggest shared pattern, **PC2** the next biggest, and so on.
+- Instead of using the original overlapping variables, we use PC1 (and more PCs only if needed).
+
+## Step 1: Load the stats library
+
+```{r}
+library(stats)
+```
+
+It contains `prcomp()`, the function that performs PCA.
+
+## Step 2: Standardize the variables
+
+```{r}
+vars <- scale(data[, c("nitrogen", "rainfall")])
+head(vars)
+```
+
+What `scale()` does:
+
+- Subtracts the mean.
+- Divides by the standard deviation.
+
+**Why standardize?**
+
+- PCA is affected by the scale of variables. For example, rainfall may be in the 100s and nitrogen in the 10s.
+- Bigger values can dominate the PCA.
+- Standardizing gives **equal weight** to all variables.
+
+## Step 3: Run PCA
+
+```{r}
+pca_result <- prcomp(vars)
+summary(pca_result)
+```
+
+`prcomp()` returns:
+
+- **PC1, PC2, ...**: new uncorrelated variables
+- **How much variance each PC explains**
+
+
+
+Check that the PCs are uncorrelated (this is the whole point):
+
+```{r}
+round(cor(pca_result$x), 4)
+```
+
+
+
+## Step 4: Use PC1 in regression
+
+```{r}
+modelpca <- lm(yield ~ pca_result$x[, 1], data = data)
+summary(modelpca)
+```
+
+- `pca_result$x[, 1]` is the **score of PC1 for each row**.
+- Instead of 2 (or 3) overlapping variables, you now use **1 new variable** that summarizes them.
+
+Think of it like this: the original variables were a **noisy duplicate**, and PC1 is the **clean summary**.
+
+What this gives you:
+
+- Removes multicollinearity (PCs are uncorrelated).
+- Improves model stability.
+- Simplifies the analysis.
+
+**Trade-off:** PC1 is a mix of variables, so it is harder to explain in agricultural terms ("one unit of PC1" is not "one kg of nitrogen"). Use the loadings to describe what PC1 represents.
+
+eory example: three variables
+
+The same steps with three variables (nitrogen, rainfall, temperature):
+
+```{r}
+vars3 <- scale(data[, c("nitrogen", "rainfall", "temperature")])
+pca3  <- prcomp(vars3)
+kable(round(summary(pca3)$importance, 4))
+```
+
+Example of how to read such a table (the numbers in your theory notes):
+
+| PC  | Proportion of variance |
+|-----|------------------------|
+| PC1 | 0.85                   |
+| PC2 | 0.12                   |
+| PC3 | 0.03                   |
+
+- PC1 alone explains 85% of the variation, so PC1 is a very good summary of the original variables.
+- Check the **cumulative proportion** row before deciding how many PCs to keep.## Th
+
+**Final tips:**
+
+- Aim to explain **80% or more** of the variance with as few PCs as possible.
+- Start simple (PC1); add more PCs only if accuracy or model fit is poor.
+- Always check the cumulative variance in the PCA summary before deciding.
+
+# Fix 4: Ridge Regression
+
+## Intuition first
+
+- Ridge regression is an **improved version of linear regression**.
+- Normal regression only tries to fit the data as closely as possible. With overlapping predictors, it can do this with **huge, unstable coefficients** (one big positive, one big negative, cancelling each other).
+- Ridge adds a **penalty** (L2 penalty) that says: *"fit the data well, but keep the coefficients small."*
+- The goal is to **shrink large coefficients**.
+
+It helps when:
+
+- Variables are correlated (multicollinearity).
+- There are too many predictors (risk of overfitting).
+
+Properties:
+
+- Keeps **all** variables in the model (does not remove any).
+- Controls and stabilizes coefficient values (a coefficient shows how strongly a predictor affects the target).
+- Builds robust models with better generalization.
+
+## What is the penalty?
+
+In normal linear regression the goal is:
+
+```         
+Minimize SSE = sum (Actual - Predicted)^2
+```
+
+In ridge regression, a penalty is added:
+
+```         
+Minimize: SSE + lambda * sum (b1^2 + b2^2 + ... + bn^2)
+```
+
+- SSE = sum of squared errors (how wrong the model is)
+- b1, b2, ..., bn = model coefficients (weights for each variable)
+- lambda = penalty strength
+
+## Why does shrinking help?
+
+**Problem with large coefficients:**
+
+- The model reacts too strongly to small changes in the data.
+- That leads to **overfitting**: the model fits the noise, not just the pattern.
+
+**Solution with ridge:**
+
+- Ridge shrinks the b values.
+- Smaller b means less sensitivity to noise, so a simpler, more stable model.
+
+## Lambda: the tuning key
+
+What happens if:
+
+- lambda = 0: no penalty, same as normal regression
+- lambda small (e.g., 0.01): very light shrinking
+- lambda large (e.g., 100): very strong shrinking (coefficients close to 0)
+
+| Lambda | Effect                              | Coefficients      |
+|--------|-------------------------------------|-------------------|
+| 0      | No penalty, normal regression       | Original b        |
+| Small  | Light penalty                       | Slightly shrunk b |
+| Medium | Balanced penalty (good performance) | Well-shrunk b     |
+| Large  | Strong penalty                      | All b close to 0  |
+
+**Intuition:** lambda is a "leash" on the coefficients. No leash (0) = coefficients run wild. Very short leash = they cannot move from 0. We want a **medium leash**, and cross-validation finds it for us.
+
+## Code in R
+
+### Read the data
+
+```{r}
+data1 <- read.csv("../data/raw/agricultural_yield_data.csv")
+head(data1)
+```
+
+First check that multicollinearity is really present here:
+
+```{r}
+lm_check <- lm(Yield ~ Soil_Nitrogen + Soil_Phosphorus + Rainfall + Temperature, data = data1)
+round(vif(lm_check), 2)
+```
+
+### Prepare predictor matrix and response vector
+
+```{r}
+a <- as.matrix(data1[, c("Soil_Nitrogen", "Soil_Phosphorus", "Rainfall", "Temperature")])
+b <- data1$Yield
+```
+
+- `a` extracts the predictor variables and converts them into a **matrix** (glmnet requires predictors in matrix form).
+- `b` is the response vector (yield).
+
+### Fit ridge regression with cross-validation to find the best lambda
+
+```{r}
+set.seed(123)
+ridge_model <- cv.glmnet(a, b, alpha = 0)
+```
+
+- Fits the ridge regression model using **cross-validation** (`cv.glmnet`).
+- `alpha = 0` tells glmnet to perform **ridge** (if `alpha = 1`, it is lasso).
+- Cross-validation automatically splits the data, fits models with different lambda values (penalties), and selects the **best lambda** that minimizes prediction error.
+
+```{r}
+#| fig-height: 4
+plot(ridge_model)
+```
+
+How to read this plot: the x-axis is log(lambda) and the y-axis is prediction error. The left dotted line is `lambda.min` (lowest error). The error curve is lowest at a **medium** lambda, high at tiny lambda (overfit) and high at huge lambda (over-shrunk).
+
+### Extract the best lambda value
+
+```{r}
+best_lambda <- ridge_model$lambda.min
+best_lambda
+```
+
+### Predict yield using the ridge model and best lambda
+
+```{r}
+Predicted_yield <- predict(ridge_model, s = best_lambda, newx = a)
+head(Predicted_yield)
+```
+
+## Seeing the shrinkage
+
+Compare ordinary regression coefficients with ridge coefficients:
+
+```{r}
+lm_coef    <- coef(lm_check)
+ridge_coef <- as.matrix(coef(ridge_model, s = best_lambda))
+
+shrink_tbl <- data.frame(
+  Term = rownames(ridge_coef),
+  OLS = round(as.numeric(lm_coef[rownames(ridge_coef)]), 4),
+  Ridge = round(as.numeric(ridge_coef), 4)
+)
+kable(shrink_tbl)
+```
+
+Read it like this: ridge coefficients are **pulled toward 0** compared with ordinary regression, especially for the overlapping predictors (the pair with high VIF). No variable is removed.
+
+And the effect of lambda itself (light, balanced, strong):
+
+```{r}
+lam <- c(light = min(ridge_model$lambda),
+         balanced = best_lambda,
+         strong = max(ridge_model$lambda))
+
+lam_tbl <- sapply(lam, function(l) as.numeric(coef(ridge_model$glmnet.fit, s = l)))
+rownames(lam_tbl) <- rownames(ridge_coef)
+kable(round(lam_tbl, 4))
+```
+
+As lambda goes from light to strong, all coefficients shrink toward 0. This is the lambda table from the theory, made real.
+
+## How well does it predict?
+
+```{r}
+actual <- data1$Yield
+rmse_ridge <- sqrt(mean((actual - as.numeric(Predicted_yield))^2))
+rmse_lm    <- sqrt(mean(residuals(lm_check)^2))
+kable(data.frame(Model = c("Ordinary regression", "Ridge"),
+                 RMSE = round(c(rmse_lm, rmse_ridge), 4)))
+```
+
+Ridge usually has **slightly higher error on the training data** (it is not trying to fit every detail). Its advantage is **stable coefficients and better performance on new data**.
+
+# Which Fix to Use?
+
+| Fix | Best when | Cost |
+|------------------------|------------------------|------------------------|
+| More data | You can still collect it | Time and money |
+| Remove one variable | One variable is clearly redundant | Lose information on that variable |
+| Combine variables | Variables measure the same idea and are on the same scale | Hard to interpret |
+| PCA | Many overlapping predictors | New variables are hard to explain |
+| Ridge | You want to keep all variables and need stable coefficients | Coefficients are shrunk (slightly biased) |
+
+# Key Takeaways
+
+1.  High multicollinearity can be managed by more data, removing or combining variables, PCA, or ridge.
+2.  **PCA:** standardize with `scale()`, run `prcomp()`, check the proportion of variance (more than 70%, aim for 80% or more), then use `pca_result$x[, 1]` in `lm()`.
+3.  **Ridge:** adds a penalty `lambda * sum(b^2)` that shrinks coefficients; it keeps all variables.
+4.  **Lambda:** 0 = normal regression, small = light shrink, medium = balanced, large = coefficients near 0.
+5.  `cv.glmnet(a, b, alpha = 0)` finds the best lambda by cross-validation (`lambda.min`); `alpha = 1` would be lasso.

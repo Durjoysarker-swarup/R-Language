@@ -1,0 +1,156 @@
+---
+title: "Correlation and Multicollinearity"
+author: "Durjoy Kumar Sarker"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Why This File?
+
+In file 01 we saw a model with a very high R² but **no significant individual predictor**. The usual reason: the predictors **overlap** (they carry the same information).
+
+This file shows how to **detect** that problem:
+
+1.  **Correlation matrix**: how strongly are variables related to each other?
+2.  **pairs.panels()**: see all relationships at once.
+3.  **VIF**: how redundant is each predictor?
+
+How to fix it is in file 03.
+
+```{r}
+library(psych)
+library(car)
+library(ggplot2)
+library(knitr)
+```
+
+# Data
+
+```{r}
+data <- read.csv("../data/raw/high_correlation_agriculture.csv")
+head(data)
+```
+
+# Correlation Matrix
+
+## What it shows
+
+The correlation matrix shows **how strongly variables are related to each other**. Values range from -1 to +1:
+
+| Value | Meaning                                                          |
+|-------|------------------------------------------------------------------|
+| +1    | perfect positive correlation: perfect increase-increase relation |
+| 0     | no correlation: no clear relationship                            |
+| -1    | perfect negative correlation: one increases, the other decreases |
+
+**Intuition:** if two variables rise and fall together, r is near +1. If one rises while the other falls, r is near -1. If they ignore each other, r is near 0.
+
+## All variables
+
+```{r}
+cor_mat <- cor(data)
+kable(round(cor_mat, 3))
+```
+
+## Only selected variables
+
+```{r}
+cor(data[, c("yield", "rainfall")])
+```
+
+**Important:** a high correlation between a predictor and **yield** is good (the predictor is useful). A high correlation between two **predictors** (for example nitrogen and rainfall) is a warning sign: they may be redundant.
+
+# pairs.panels(): All Relationships at Once
+
+`pairs.panels()` shows **all variable relationships at once**. `ggplot` shows **one relationship in detail**.
+
+```{r}
+#| fig-height: 6.5
+#| fig-width: 6.5
+pairs.panels(data,
+             method = "pearson",
+             hist.col = "darkgreen",
+             density = TRUE,
+             ellipses = TRUE)
+```
+
+## How to read the three parts
+
+**Upper triangle: correlation coefficients**
+
+- Shows the **strength and direction** of the relationship between two variables.
+- Range: +1 perfect positive, 0 none, -1 perfect negative.
+
+**Diagonal: histograms (with density lines if `density = TRUE`)**
+
+- Shows the **distribution** of each variable.
+- Use it to check:
+  - **Normality** (bell-shaped)
+  - **Skewness** (leaning left or right)
+  - **Outliers** (isolated bars)
+
+**Lower triangle: scatter plots (with ellipses if `ellipses = TRUE`)**
+
+- Visualizes the **trend** between pairs of variables.
+- Line-shaped or elliptical = strong linear relation.
+- Wide or spread = weak or no correlation.
+- Outliers appear as distant points.
+
+**Ellipses:**
+
+- **Thinner** = stronger linear relationship.
+- **Round** = weak or no relationship.
+- The **direction** shows a positive or negative trend.
+
+# VIF (Variance Inflation Factor)
+
+- VIF measures **how much one predictor can be predicted by the other predictors**.
+- The higher the VIF, the more **redundant (overlapping) information** that predictor has.
+
+Think of two people giving you the same news. The second person adds no new information. If your predictors are like that, the model cannot tell **whose effect is whose**, so the coefficients become unstable and look "not significant".
+
+## Fit the model and get VIF
+
+```{r}
+model <- lm(yield ~ nitrogen + rainfall, data = data)
+vif(model)
+```
+
+## Meaning of VIF values
+
+| VIF value | Interpretation                                |
+|-----------|-----------------------------------------------|
+| 1         | No correlation with other variables (ideal)   |
+| 1 to 5    | Moderate correlation, usually okay            |
+| \> 5      | High correlation, possible problem            |
+| \> 10     | Serious multicollinearity, bad for regression |
+
+## Where does VIF come from?
+
+VIF for a predictor = 1 / (1 - R²), where R² comes from predicting **that predictor** using the **other predictors**.
+
+
+The manual VIF matches `vif()`. So: **if rainfall can almost fully predict nitrogen (R² close to 1), VIF explodes**.
+
+# What Next if Multicollinearity is High?
+
+The next step is **managing** it (file 03):
+
+1.  Collect more data.
+2.  Remove one variable, or combine variables into one.
+3.  PCA (Principal Component Analysis).
+4.  Ridge regression.
+
+# Key Takeaways
+
+1.  **Correlation matrix** (`cor()`): strength and direction between variables, from -1 to +1.
+2.  **pairs.panels()**: upper triangle = coefficients, diagonal = histograms (normality, skewness, outliers), lower triangle = scatter plots and ellipses (thin ellipse = strong relation).
+3.  **Predictor-yield** correlation high = useful. **Predictor-predictor** correlation high = redundancy warning.
+4.  **VIF**: 1 is ideal, 1 to 5 usually okay, above 5 a possible problem, above 10 serious.

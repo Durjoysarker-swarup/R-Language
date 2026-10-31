@@ -1,0 +1,222 @@
+---
+title: "Regression Assumptions and Diagnostics"
+subtitle: "Residual Plots, qqPlot, ncvTest"
+author: "Durjoy Kumar Sarker"
+format:
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Why Check Assumptions?
+
+A regression model gives you numbers (coefficients, p-values, R²). But those numbers are only **trustworthy if the model's assumptions hold**.
+
+**Intuition:** the model draws the best line through the data. If the line captured the real pattern, what is **left over** (the residuals) should look like **pure random noise**. If the leftovers still show a pattern, the model missed something, and its p-values and predictions cannot be trusted.
+
+Residual = actual - predicted.
+
+```{r}
+library(car)
+library(knitr)
+```
+
+# The Four Assumptions
+
+| # | Assumption | How we check it |
+|---|---|---|
+| 1 | **Independence** | Study design (are observations independent?) |
+| 2 | **Linearity** | Residuals vs Fitted: should be scattered |
+| 3 | **Normality** (of residuals) | Normal Q-Q plot: points near the line |
+| 4 | **Constant variance** (homoscedasticity) | Scale-Location plot |
+
+# Data and Model
+
+```{r}
+data <- read.csv("../data/raw/agri_yield_data.csv")
+head(data)
+dim(data)
+```
+
+```{r}
+model <- lm(Crop_Yield ~ Fertilizer_kg + Rainfall_mm + Soil_Nitrogen, data = data)
+summary(model)
+```
+
+# The Four Diagnostic Plots
+
+```{r}
+#| fig-height: 7
+#| fig-width: 7
+par(mfrow = c(2, 2))
+plot(model)
+par(mfrow = c(1, 1))
+```
+
+Now each plot in detail: what is plotted, what the "real meaning" is, what good looks like, and what bad looks like.
+
+## Plot 1: Residuals vs Fitted (checks linearity)
+
+**What is plotted:** x = the predicted yield, y = the residual (actual - predicted).
+
+**The real meaning:** if the relationship is truly linear, the model's mistakes should be equally likely to be positive or negative at **every** predicted yield. So the points should form a **random cloud around 0**, and the red line should be roughly flat.
+
+- **What to check:** random scatter, no clear pattern.
+- **Bad sign: curved shape** (like a U or an arch) = the true relationship is **non-linear**, and the straight line is systematically over-predicting in some ranges and under-predicting in others.
+- **Bad sign: funnel shape** (spread gets wider or narrower) = **non-constant variance** (heteroscedasticity).
+
+## Plot 2: Normal Q-Q (checks normality)
+
+**What is plotted:** x = where each residual **would** sit if residuals were perfectly normal, y = where it **actually** sits.
+
+**The real meaning:** it compares your residuals with a perfect bell curve, point by point. If they match, the points fall on the diagonal line.
+
+- **What to check:** points should follow the straight line.
+- **Bad sign:** deviations at the **ends** = residuals are not normal (**heavy tails** if both ends bend away, **skewness** if the curve bends one way).
+- Small wobbles at the very ends are normal, especially with small samples.
+
+## Plot 3: Scale-Location (checks constant variance)
+
+**What is plotted:** x = predicted yield, y = square root of the absolute standardized residual (the **size** of the error, ignoring its sign).
+
+**The real meaning:** it asks, *"does the size of the errors change as predicted yield changes?"* If the errors are equally big everywhere, the red line is flat.
+
+- **What to check:** horizontal spread, flat red line.
+- **Bad sign:** increasing or decreasing spread = **variance is not constant**. Example: the model is accurate for low-yield fields but very uncertain for high-yield fields.
+
+## Plot 4: Residuals vs Leverage (checks outliers and influential points)
+
+**What is plotted:** x = leverage (how **unusual** a row's predictor values are), y = standardized residual (how badly the model fits that row).
+
+**The real meaning:** a point can hurt the model in two ways. It can be far from the line (big residual, an **outlier**), or it can sit at an extreme predictor value and **pull the line toward itself** (high leverage). A point with **both** is highly **influential**: remove it and the whole model changes.
+
+- **What to check:** outliers or influential points.
+- **Bad sign:** points **outside Cook's distance** lines (the dashed curves in the corners) = highly influential.
+
+# Day 5 Code Tests: qqPlot and ncvTest
+
+## qqPlot()
+
+```{r}
+#| fig-height: 4.5
+qqPlot(model)
+```
+
+- Points near the line = residuals are normal.
+- Far from the line = skewness or heavy tails.
+- The **shaded band** is a confidence envelope: points inside the band are consistent with normality. The labeled numbers are the row numbers of the most extreme points.
+
+## ncvTest()
+
+```{r}
+ncv <- ncvTest(model)
+ncv
+```
+
+- **Null hypothesis:** residual variance is constant.
+- **p-value > 0.05:** homoscedasticity (constant variance) is OK.
+- **p-value < 0.05:** heteroscedasticity (variance is not constant).
+
+## Reading your results
+
+```{r}
+#| results: asis
+p_ncv <- ncv$p
+cat(sprintf("- **Constant variance (ncvTest):** p = %.3f. %s\n",
+            p_ncv,
+            ifelse(p_ncv > 0.05,
+                   "This is above 0.05, so we keep the null: variance looks constant (homoscedasticity).",
+                   "This is below 0.05, so variance is NOT constant (heteroscedasticity).")))
+
+sw <- shapiro.test(residuals(model))
+cat(sprintf("- **Normality (Shapiro-Wilk on residuals):** p = %.3f. %s\n",
+            sw$p.value,
+            ifelse(sw$p.value > 0.05,
+                   "Above 0.05, so there is no evidence against normal residuals.",
+                   "Below 0.05, so residuals depart from normality.")))
+
+cd <- cooks.distance(model)
+n  <- nrow(data)
+cat(sprintf("- **Influential points (Cook's distance):** the largest value is %.3f (rows above 4/n = %.3f: %d; rows above 0.5: %d). %s\n",
+            max(cd), 4 / n, sum(cd > 4 / n), sum(cd > 0.5),
+            ifelse(sum(cd > 0.5) == 0,
+                   "No point is highly influential.",
+                   "Check the flagged rows.")))
+```
+
+Both tests are **supporting evidence**, not a replacement for the plots. With small samples tests are weak; with huge samples they flag tiny, harmless departures. Always read the plot and the test **together**.
+
+# Assumption 1: Independence
+
+- Each observation should be **independent** of the others: knowing one field's residual should tell you nothing about another's.
+- This is checked by **study design**, not by a plot. Problems appear when observations are linked, for example:
+  - plots next to each other (spatial correlation)
+  - the same field measured repeatedly over time (time correlation)
+  - plots in the same block or farm
+- If observations are linked, ordinary `lm()` p-values are too optimistic, and a model that accounts for blocks or time (such as a mixed model) is needed.
+
+For data stored in time or field order, one quick supporting check is the Durbin-Watson test (a value near 2 means no correlation between neighbouring residuals):
+
+```{r}
+durbinWatsonTest(model)
+```
+
+Only trust this if the **row order** of the data means something (time or position). For a shuffled cross-sectional file it is not informative.
+
+# What Bad Patterns Look Like (a Quick Demo)
+
+To really see what the warning signs mean, here are three simulated cases. The left one is good, the others are bad.
+
+```{r}
+#| fig-height: 3.2
+#| fig-width: 9
+set.seed(10)
+x <- runif(80, 1, 10)
+
+y_good   <- 2 + 1.5 * x + rnorm(80, sd = 1)
+y_curve  <- 2 + 0.25 * x^2 + rnorm(80, sd = 1)
+y_funnel <- 2 + 1.5 * x + rnorm(80, sd = 0.3 * x)
+
+par(mfrow = c(1, 3))
+for (case in list(list(y_good, "Good: random cloud"),
+                  list(y_curve, "Bad: curve (non-linear)"),
+                  list(y_funnel, "Bad: funnel (variance grows)"))) {
+  m <- lm(case[[1]] ~ x)
+  plot(fitted(m), residuals(m), main = case[[2]],
+       xlab = "Fitted", ylab = "Residuals", pch = 19, col = "steelblue")
+  abline(h = 0, lty = 2)
+  lines(lowess(fitted(m), residuals(m)), col = "red", lwd = 2)
+}
+par(mfrow = c(1, 1))
+```
+
+- **Good:** points scatter evenly around 0, red line is flat.
+- **Curve:** the red line bends. A straight line is the wrong shape for this data.
+- **Funnel:** the spread widens to the right. Errors get bigger for higher predictions.
+
+# What if an Assumption Fails?
+
+| Problem | Typical remedy |
+|---|---|
+| Non-linearity (curve) | Add a squared term, or transform a predictor (e.g., log) |
+| Non-normal residuals | Transform the response (log, square root), or check for outliers |
+| Non-constant variance (funnel) | Transform the response (log), or use weighted or robust methods |
+| Influential points | Check for data entry errors first; compare the model with and without the point |
+| Dependent observations | Use a model that accounts for blocks or time (mixed model) |
+
+# Key Takeaways
+
+1. Assumptions: **independence, linearity, normality, constant variance**.
+2. The four plots from `plot(model)`:
+   - **Residuals vs Fitted:** should be a random cloud (curve = non-linear, funnel = unequal variance).
+   - **Normal Q-Q:** points on the line (bends at the ends = non-normal).
+   - **Scale-Location:** flat red line (slope = variance changes).
+   - **Residuals vs Leverage:** no points beyond Cook's distance.
+3. **`qqPlot(model)`:** points near the line (and inside the band) = normal residuals.
+4. **`ncvTest(model)`:** p > 0.05 = homoscedasticity; p < 0.05 = heteroscedasticity.
+5. Residuals are the model's leftovers: **if they look like noise, the model is doing its job**.
